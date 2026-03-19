@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>論文管理</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg0:#0d0d0f;--bg1:#141418;--bg2:#1c1c22;--bg3:#242429;--bg4:#2e2e35;
+  --border:#2e2e38;--border2:#3a3a44;
+  --text1:#f0f0f2;--text2:#a0a0b0;--text3:#606070;
+  --accent:#6ee7b7;--accent2:#34d399;--accent-dim:#1a3d30;
+  --orange:#fb923c;--orange-dim:#3d1f0a;
+  --blue:#60a5fa;--blue-dim:#1a2a3d;
+  --red:#f87171;--red-dim:#3d1a1a;
+  --yellow:#fbbf24;--yellow-dim:#3d2e0a;
+  --purple:#a78bfa;--purple-dim:#2a1a3d;
+  --radius:8px;--radius-lg:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:var(--bg0);color:var(--text1);font-size:13px;line-height:1.5;min-height:100vh}
+code,pre{font-family:'JetBrains Mono',monospace}
+
+/* SETUP */
+.setup-screen{display:flex;align-items:center;justify-content:center;min-height:100vh}
+.setup-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:32px;max-width:400px;width:90%;text-align:center}
+.setup-card h1{font-size:22px;font-weight:600;margin-bottom:6px;letter-spacing:-0.5px}
+.setup-card p{font-size:13px;color:var(--text2);margin-bottom:0;line-height:1.7}
+.setup-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);display:inline-block;margin-right:8px;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+#setup-error{display:none;color:var(--red);font-size:12px;margin-top:12px;padding:10px;background:var(--red-dim);border-radius:var(--radius);border:1px solid var(--red)}
+
+/* APP */
+.app-screen{display:none}
+.app-screen.active{display:flex;flex-direction:column;height:100vh}
+
+/* NAV */
+.nav{display:flex;align-items:center;border-bottom:1px solid var(--border);background:var(--bg1);padding:0 16px;flex-shrink:0;height:44px}
+.nav-logo{font-size:13px;font-weight:600;color:var(--text1);margin-right:20px;letter-spacing:-0.3px;display:flex;align-items:center;gap:8px}
+.nav-logo-dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.nav-tab{padding:0 14px;font-size:12px;cursor:pointer;height:44px;border-bottom:2px solid transparent;color:var(--text3);background:none;border-top:none;border-left:none;border-right:none;font-family:inherit;transition:all 0.12s;white-space:nowrap;letter-spacing:0.2px}
+.nav-tab.active{color:var(--text1);border-bottom-color:var(--accent);font-weight:500}
+.nav-tab:hover{color:var(--text2)}
+.nav-spacer{flex:1}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);display:inline-block;margin-right:6px}
+.sync-label{font-size:11px;color:var(--text3)}
+.btn-add{padding:5px 14px;background:var(--accent);color:#0a1a14;border:none;border-radius:var(--radius);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all 0.12s;letter-spacing:0.2px}
+.btn-add:hover{background:var(--accent2)}
+
+/* PAGES */
+.page{display:none;flex:1;min-height:0}
+.page.active{display:flex;flex-direction:column}
+
+/* LIST */
+.list-body{display:grid;grid-template-columns:200px 1fr;flex:1;min-height:0;overflow:hidden}
+.sidebar{background:var(--bg1);border-right:1px solid var(--border);padding:12px;display:flex;flex-direction:column;gap:12px;overflow-y:auto}
+.stat-row{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.stat{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:8px 10px;text-align:center}
+.stat-num{font-size:18px;font-weight:600;color:var(--text1)}
+.stat-lbl{font-size:10px;color:var(--text3);margin-top:1px;letter-spacing:0.3px}
+.fl{font-size:10px;color:var(--text3);font-weight:500;margin-bottom:4px;letter-spacing:0.5px;text-transform:uppercase}
+select,input[type=text],textarea{width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg3);color:var(--text1);font-size:12px;font-family:inherit;transition:border-color 0.12s}
+select:focus,input:focus,textarea:focus{outline:none;border-color:var(--border2)}
+.tag-cloud{display:flex;flex-wrap:wrap;gap:3px}
+.tag-btn{background:none;border:1px solid var(--border);border-radius:20px;padding:2px 8px;font-size:10px;color:var(--text3);cursor:pointer;transition:all 0.12s;font-family:inherit}
+.tag-btn:hover,.tag-btn.active{background:var(--accent-dim);color:var(--accent);border-color:var(--accent)}
+
+/* TOOLBAR */
+.main-col{display:flex;flex-direction:column;overflow:hidden}
+.toolbar{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--bg1)}
+.sw{flex:1;position:relative}
+.sw input{padding-left:28px;background:var(--bg2)}
+.si{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:12px;pointer-events:none}
+.btn{padding:5px 12px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg3);color:var(--text2);font-size:12px;cursor:pointer;font-family:inherit;transition:all 0.12s;white-space:nowrap}
+.btn:hover{border-color:var(--border2);color:var(--text1)}
+.btn:disabled{opacity:0.35;cursor:not-allowed}
+.btn.danger{border-color:var(--red-dim);color:var(--red)}
+.btn.danger:hover{background:var(--red-dim)}
+
+/* PAPER LIST */
+.paper-list{flex:1;overflow-y:auto;padding:8px;background:var(--bg0)}
+.pc{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px 14px;margin-bottom:6px;cursor:pointer;transition:all 0.12s}
+.pc:hover{border-color:var(--border2);background:var(--bg3)}
+.pc.sel{border-color:var(--accent);background:var(--bg3)}
+.ph{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:4px}
+.pt{font-weight:500;font-size:13px;line-height:1.4;flex:1;color:var(--text1)}
+.sb{flex-shrink:0;font-size:10px;padding:2px 7px;border-radius:20px;font-weight:500;letter-spacing:0.2px}
+.s-unread{background:var(--yellow-dim);color:var(--yellow)}
+.s-reading{background:var(--blue-dim);color:var(--blue)}
+.s-done{background:var(--accent-dim);color:var(--accent)}
+.pm{font-size:11px;color:var(--text3);margin-bottom:6px}
+.pt-row{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:4px}
+.tg{font-size:10px;padding:2px 7px;border-radius:20px;background:var(--bg4);color:var(--text3);border:1px solid var(--border)}
+.pdf-badge{font-size:10px;padding:2px 7px;border-radius:20px;background:var(--orange-dim);color:var(--orange);border:1px solid var(--orange-dim)}
+.pnp{font-size:11px;color:var(--text3);font-style:italic;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.empty{text-align:center;padding:48px;color:var(--text3);font-size:13px;line-height:2}
+
+/* DETAIL MODAL */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:200;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto}
+.overlay.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);width:100%;max-width:720px;padding:24px;margin:auto}
+.modal-title{font-size:16px;font-weight:600;margin-bottom:16px;letter-spacing:-0.3px}
+.fr{margin-bottom:12px}
+.fr label{display:block;font-size:10px;color:var(--text3);margin-bottom:4px;font-weight:500;text-transform:uppercase;letter-spacing:0.5px}
+.fr textarea{min-height:64px;resize:vertical;background:var(--bg3)}
+.btn-row{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+
+/* STRUCTURED NOTES */
+.notes-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.note-block{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:12px}
+.note-block.full{grid-column:1/-1}
+.note-label{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.note-label-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.note-content{font-size:12px;color:var(--text2);line-height:1.7;white-space:pre-wrap;min-height:20px}
+.note-empty{color:var(--text3);font-style:italic}
+textarea.note-input{background:var(--bg4);border-color:var(--border);font-size:12px;min-height:80px;color:var(--text1)}
+
+/* SECTION HEADER */
+.sec-head{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:0.8px;color:var(--text3);padding:8px 0 6px;border-top:1px solid var(--border);margin-top:12px;margin-bottom:8px}
+.sec-head:first-child{border-top:none;margin-top:0;padding-top:0}
+
+/* STATUS + TAGS ROW */
+.meta-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+
+/* PDF */
+.pdf-viewer-wrap{display:none;position:fixed;inset:0;background:#000;z-index:300;flex-direction:column}
+.pdf-viewer-wrap.open{display:flex}
+.pdf-toolbar{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg1);border-bottom:1px solid var(--border);flex-shrink:0}
+.pdf-toolbar-title{font-size:12px;color:var(--text2);flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.pdf-btn-sm{padding:5px 14px;background:var(--bg3);color:var(--text2);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;font-family:inherit;font-size:12px;text-decoration:none;display:inline-block}
+.pdf-btn-sm:hover{color:var(--text1);border-color:var(--border2)}
+.pdf-iframe{flex:1;border:none}
+
+/* PDF UPLOAD */
+.pdf-drop{border:2px dashed var(--border);border-radius:var(--radius);padding:18px;text-align:center;cursor:pointer;transition:all 0.15s;position:relative}
+.pdf-drop:hover,.pdf-drop.drag{border-color:var(--accent);background:var(--accent-dim)}
+.pdf-drop-text{font-size:12px;color:var(--text3)}
+.pdf-file-info{display:flex;align-items:center;gap:10px;background:var(--orange-dim);border:1px solid var(--border);border-radius:var(--radius);padding:8px 12px;margin-top:8px}
+.pdf-file-name{font-size:12px;color:var(--orange);flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.pdf-file-clear{background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;padding:0 4px;line-height:1}
+
+/* AI BOX */
+.ai-box{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:12px;font-size:12px;line-height:1.7;white-space:pre-wrap;color:var(--text2)}
+.ai-loading{color:var(--text3);font-style:italic}
+.rec-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;cursor:pointer;transition:all 0.12s;margin-bottom:6px}
+.rec-card:hover{border-color:var(--border2)}
+.rec-title{font-size:12px;font-weight:500;margin-bottom:3px;color:var(--text1)}
+.rec-reason{font-size:11px;color:var(--text3)}
+
+/* LOOKUP BOX */
+.lookup-box{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-bottom:14px}
+.lookup-tabs{display:flex;gap:4px;margin-bottom:10px}
+.lt{padding:4px 12px;font-size:11px;border:1px solid var(--border);border-radius:20px;background:none;color:var(--text3);cursor:pointer;font-family:inherit;transition:all 0.12s}
+.lt.active{background:var(--accent);color:#0a1a14;border-color:var(--accent);font-weight:500}
+.lookup-hint{font-size:11px;color:var(--text3);margin-top:6px}
+.lookup-hint code{background:var(--bg4);padding:1px 5px;border-radius:3px;font-family:'JetBrains Mono',monospace;font-size:10px}
+#lookup-status{font-size:11px;margin-top:6px;display:none}
+
+/* DASHBOARD */
+.dash-body{padding:16px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;flex:1;background:var(--bg0)}
+.dash-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.metric{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px}
+.metric-num{font-size:24px;font-weight:600;color:var(--text1);letter-spacing:-1px}
+.metric-lbl{font-size:10px;color:var(--text3);margin-top:2px;text-transform:uppercase;letter-spacing:0.5px}
+.dash-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.dash-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px}
+.dash-card h3{font-size:10px;font-weight:500;margin-bottom:12px;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px}
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.bar-label{font-size:11px;color:var(--text2);width:100px;flex-shrink:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.bar-track{flex:1;background:var(--bg4);border-radius:3px;height:6px;overflow:hidden}
+.bar-fill{height:100%;border-radius:3px;background:var(--accent);transition:width 0.5s ease}
+.bar-count{font-size:11px;color:var(--text3);width:20px;text-align:right;flex-shrink:0}
+.monthly-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:3px;align-items:end;height:72px}
+.month-col{display:flex;flex-direction:column;align-items:center;gap:2px}
+.month-bar{width:100%;border-radius:2px;min-height:3px;transition:height 0.4s ease}
+.month-lbl{font-size:8px;color:var(--text3)}
+.donut-wrap{display:flex;align-items:center;gap:16px}
+.legend{display:flex;flex-direction:column;gap:6px}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)}
+.legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+
+@media(max-width:600px){
+  .list-body{grid-template-columns:1fr}
+  .sidebar{display:none}
+  .dash-metrics{grid-template-columns:1fr 1fr}
+  .dash-row{grid-template-columns:1fr}
+  .notes-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<div class="setup-screen" id="setup-screen">
+  <div class="setup-card">
+    <h1><span class="setup-dot"></span>論文管理</h1>
+    <p>Supabaseに接続中...</p>
+    <div id="setup-error"></div>
+  </div>
+</div>
+
+<div class="app-screen" id="app-screen">
+  <div class="nav">
+    <div class="nav-logo"><div class="nav-logo-dot"></div>論文管理</div>
+    <button class="nav-tab active" onclick="showPage('list',this)">ライブラリ</button>
+    <button class="nav-tab" onclick="showPage('dash',this)">ダッシュボード</button>
+    <div class="nav-spacer"></div>
+    <span class="sync-dot"></span><span class="sync-label">クラウド同期</span>
+    <button class="btn-add" onclick="openAdd()" style="margin-left:12px">+ 追加</button>
+  </div>
+
+  <!-- LIST PAGE -->
+  <div class="page active" id="page-list">
+    <div class="list-body">
+      <div class="sidebar">
+        <div class="stat-row" id="stats-sb"></div>
+        <div><div class="fl">状態</div><select id="filter-status" onchange="renderAll()"><option value="">すべて</option><option value="unread">未読</option><option value="reading">読書中</option><option value="done">読了</option></select></div>
+        <div><div class="fl">カテゴリ</div><select id="filter-cat" onchange="renderAll()"><option value="">すべて</option></select></div>
+        <div><div class="fl">タグ</div><div class="tag-cloud" id="tag-cloud"></div></div>
+      </div>
+      <div class="main-col">
+        <div class="toolbar">
+          <div class="sw"><span class="si">⌕</span><input type="text" id="search-input" placeholder="タイトル・著者・メモを検索..." oninput="renderAll()"></div>
+          <select id="sort-sel" onchange="renderAll()" style="width:100px"><option value="date-desc">新しい順</option><option value="date-asc">古い順</option><option value="title">タイトル順</option><option value="status">状態順</option></select>
+        </div>
+        <div class="paper-list" id="paper-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD PAGE -->
+  <div class="page" id="page-dash">
+    <div class="dash-body" id="dash-body"></div>
+  </div>
+</div>
+
+<!-- PDF VIEWER -->
+<div class="pdf-viewer-wrap" id="pdf-viewer">
+  <div class="pdf-toolbar">
+    <span class="pdf-toolbar-title" id="pdf-viewer-title"></span>
+    <a id="pdf-open-link" href="#" target="_blank" class="pdf-btn-sm">↗ 別タブで開く</a>
+    <button class="pdf-btn-sm" onclick="closePdfViewer()">✕ 閉じる</button>
+  </div>
+  <iframe class="pdf-iframe" id="pdf-iframe" src="" title="PDF"></iframe>
+</div>
+
+<!-- ADD/EDIT MODAL -->
+<div class="overlay" id="add-overlay">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-title" id="modal-label">論文を追加</div>
+
+    <!-- LOOKUP -->
+    <div class="lookup-box">
+      <div style="font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3);margin-bottom:8px">自動入力</div>
+      <div class="lookup-tabs">
+        <button class="lt active" id="tab-doi" onclick="switchTab('doi')">DOI</button>
+        <button class="lt" id="tab-pm" onclick="switchTab('pm')">PubMed</button>
+      </div>
+      <div style="display:flex;gap:8px">
+        <input id="f-lookup-input" type="text" placeholder="10.1519/... または https://doi.org/..." style="flex:1">
+        <button class="btn" id="lookup-fetch-btn" onclick="fetchLookup()" style="background:var(--accent);color:#0a1a14;border-color:var(--accent);font-weight:500">取得</button>
+      </div>
+      <div class="lookup-hint" id="lookup-hint">DOI例: <code>10.1519/JSC.0000000000004000</code></div>
+      <div id="lookup-status"></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="fr" style="grid-column:1/-1"><label>タイトル *</label><input id="f-title" type="text" placeholder="論文タイトル"></div>
+      <div class="fr"><label>著者</label><input id="f-author" type="text" placeholder="著者名"></div>
+      <div class="fr"><label>雑誌・会議名</label><input id="f-venue" type="text" placeholder="J Strength Cond Res など"></div>
+      <div class="fr"><label>年</label><input id="f-year" type="text" placeholder="2024"></div>
+      <div class="fr"><label>PDF URL / DOI URL</label><input id="f-url" type="text" placeholder="https://pubmed.ncbi.nlm.nih.gov/..."></div>
+      <div class="fr"><label>カテゴリ</label><input id="f-category" type="text" placeholder="筋力トレーニング, 持久力 など"></div>
+      <div class="fr" style="grid-column:1/-1"><label>タグ（カンマ区切り）</label><input id="f-tags" type="text" placeholder="RCT, レジスタンス, 高齢者"></div>
+      <div class="fr"><label>読了状態</label><select id="f-status"><option value="unread">未読</option><option value="reading">読書中</option><option value="done">読了</option></select></div>
+      <div class="fr"><label>一言メモ</label><input id="f-quick_note" type="text" placeholder="この論文を一言で言うと..."></div>
+    </div>
+
+    <div style="font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3);margin:14px 0 10px;padding-top:14px;border-top:1px solid var(--border)">研究詳細</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="fr"><label>対象者・参加者</label><textarea id="f-subjects" placeholder="例: 健常男性20名（22±2歳）&#10;トレーニング経験2年以上&#10;除外基準: 骨格筋疾患など"></textarea></div>
+      <div class="fr"><label>トレーニング・介入プロトコル</label><textarea id="f-protocol" placeholder="例: 週3回12週間&#10;3セット×8-12回&#10;強度: 1RM 70-80%&#10;種目: スクワット、レッグプレス..."></textarea></div>
+      <div class="fr"><label>主な結果・アウトカム</label><textarea id="f-outcomes" placeholder="例: 筋断面積 +12%（p&lt;0.05）&#10;1RM +18%&#10;筋力とタンパク摂取量に有意な相関（r=0.72）"></textarea></div>
+      <div class="fr"><label>統計解析方法</label><textarea id="f-statistics" placeholder="例: 2×2 反復測定ANOVA&#10;効果量: Cohen's d&#10;有意水準: p&lt;0.05"></textarea></div>
+      <div class="fr" style="grid-column:1/-1"><label>考察・限界・実用上の指標</label><textarea id="f-discussion" placeholder="例: サンプルサイズが小さい&#10;介入期間が短い&#10;実用上は週2回でも効果が期待できる"></textarea></div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn danger" id="del-btn" onclick="deletePaper()" style="margin-right:auto;display:none">削除</button>
+      <button class="btn" onclick="closeAdd()">キャンセル</button>
+      <button class="btn" onclick="savePaper()" style="background:var(--accent);color:#0a1a14;border-color:var(--accent);font-weight:500">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="overlay" id="detail-overlay">
+  <div class="modal" style="max-width:760px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:8px">
+      <div style="font-size:16px;font-weight:600;line-height:1.4;flex:1;letter-spacing:-0.3px" id="d-title"></div>
+      <button class="btn" onclick="closeDetail()" style="flex-shrink:0;padding:3px 10px">✕</button>
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:10px" id="d-meta"></div>
+    <div class="meta-row" id="d-tags"></div>
+
+    <!-- quick note -->
+    <div id="d-quick-note-wrap" style="display:none;background:var(--bg3);border-left:3px solid var(--accent);padding:10px 12px;border-radius:0 var(--radius) var(--radius) 0;margin-bottom:12px;font-size:13px;color:var(--text1);font-style:italic" id="d-quick-note"></div>
+
+    <!-- PDF URL -->
+    <div id="pdf-url-section" style="display:none;margin-bottom:12px">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--orange-dim);border:1px solid var(--border);border-radius:var(--radius);padding:8px 12px">
+        <span style="font-size:13px">📄</span>
+        <span style="font-size:11px;color:var(--orange);flex:1;word-break:break-all" id="d-pdf-url-text"></span>
+        <button class="btn" onclick="openPdfViewer()" style="font-size:11px;padding:3px 10px;color:var(--orange);border-color:var(--orange-dim)">アプリ内で開く</button>
+        <a id="d-pdf-link" href="#" target="_blank" class="btn" style="font-size:11px;padding:3px 10px;text-decoration:none">↗ 別タブ</a>
+      </div>
+    </div>
+
+    <!-- STRUCTURED NOTES -->
+    <div class="sec-head">研究詳細</div>
+    <div class="notes-grid" id="d-notes-grid"></div>
+
+    <!-- PDF UPLOAD -->
+    <div class="sec-head">PDFをアップロードしてAIに読ませる</div>
+    <div class="pdf-drop" id="pdf-drop">
+      <input type="file" id="pdf-file-input" accept=".pdf" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%" onchange="onPdfFileSelect(event)">
+      <div class="pdf-drop-text">📂 クリックまたはドラッグでPDFを選択</div>
+    </div>
+    <div class="pdf-file-info" id="pdf-file-info" style="display:none">
+      <span>📄</span><span class="pdf-file-name" id="pdf-file-name"></span>
+      <button class="pdf-file-clear" onclick="clearPdfFile()">✕</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+      <button class="btn" id="pdf-ai-btn" onclick="runPdfAI('summary')" style="font-size:11px;color:var(--orange);border-color:var(--orange-dim)">✨ 要約・キーワード生成</button>
+      <button class="btn" id="pdf-ai-btn2" onclick="runPdfAI('extract')" style="font-size:11px;color:var(--orange);border-color:var(--orange-dim)">📋 書誌情報を自動入力</button>
+    </div>
+    <div class="ai-box" id="pdf-ai-box" style="display:none;margin-top:8px"></div>
+
+    <!-- AI SUMMARY -->
+    <div class="sec-head" style="display:flex;align-items:center;justify-content:space-between">
+      <span>AI要約</span>
+      <button class="btn" id="ai-btn" onclick="runAI()" style="font-size:11px;padding:2px 10px">生成する</button>
+    </div>
+    <div class="ai-box" id="ai-box" style="display:none"></div>
+
+    <!-- RECOMMENDATIONS -->
+    <div class="sec-head" style="display:flex;align-items:center;justify-content:space-between">
+      <span>関連論文</span>
+      <button class="btn" onclick="runRec()" style="font-size:11px;padding:2px 10px">探す</button>
+    </div>
+    <div id="rec-area"></div>
+
+    <div class="btn-row" style="margin-top:16px">
+      <button class="btn danger" onclick="deletePaperFromDetail()">削除</button>
+      <button class="btn" onclick="editFromDetail()">編集</button>
+      <button class="btn" onclick="closeDetail()" style="background:var(--accent);color:#0a1a14;border-color:var(--accent);font-weight:500">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SB_URL='https://jzmikfjvumtkofjglegq.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp6bWlrZmp2dW10a29mamdsZWdxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4OTYyNTIsImV4cCI6MjA4OTQ3MjI1Mn0.qjUHINkbTXDfEnEWTJ9Ce16UX0OR4uGdGB8yALcAj8U';
+const SB_TABLE='papers';
+
+async function sbFetch(path,opts={}){
+  const res=await fetch(SB_URL+'/rest/v1/'+path,{
+    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation',...(opts.headers||{})},
+    ...opts
+  });
+  if(!res.ok){const e=await res.text();throw new Error(e);}
+  const t=await res.text();return t?JSON.parse(t):null;
+}
+
+function toRow(p){
+  return {id:p.id,title:p.title,author:p.author||'',venue:p.venue||'',year:p.year||'',
+    url:p.url||'',category:p.category||'',tags:p.tags||[],status:p.status||'unread',
+    memo:p.memo||'',ai_summary:p.aiSummary||'',ai_keywords:p.aiKeywords||'',created:p.created,
+    subjects:p.subjects||'',protocol:p.protocol||'',outcomes:p.outcomes||'',
+    statistics:p.statistics||'',discussion:p.discussion||'',quick_note:p.quick_note||''};
+}
+function fromRow(r){
+  return {id:r.id,title:r.title,author:r.author,venue:r.venue,year:r.year,url:r.url,
+    category:r.category,tags:r.tags||[],status:r.status,memo:r.memo||'',
+    aiSummary:r.ai_summary||'',aiKeywords:r.ai_keywords||'',created:r.created,
+    subjects:r.subjects||'',protocol:r.protocol||'',outcomes:r.outcomes||'',
+    statistics:r.statistics||'',discussion:r.discussion||'',quick_note:r.quick_note||''};
+}
+
+let papers=[],selId=null,editId=null,activeTag=null,apiKey='';
+let currentPdfBase64=null;
+
+async function launch(){
+  document.getElementById('setup-screen').style.display='none';
+  document.getElementById('app-screen').classList.add('active');
+  await load();renderAll();
+}
+async function load(){
+  try{
+    const rows=await sbFetch(SB_TABLE+'?order=created.desc&limit=1000');
+    papers=(rows||[]).map(fromRow);
+    if(!papers.length){
+      const s=[
+        {id:Date.now()-3000,title:'Effect of Resistance Training Volume on Muscle Hypertrophy',author:'Schoenfeld BJ et al.',venue:'J Strength Cond Res',year:'2019',url:'',category:'筋力トレーニング',tags:['RCT','筋肥大','ボリューム'],status:'done',memo:'',aiSummary:'',aiKeywords:'',created:Date.now()-864e5*60,subjects:'健常男性18名（24±3歳）、トレーニング経験2年以上',protocol:'週3回16週間、低ボリューム群(5セット/週) vs 高ボリューム群(15セット/週)\n種目：スクワット、レッグプレスなど',outcomes:'筋断面積: 高ボリューム群 +13.3%, 低ボリューム群 +6.8%（p<0.05）\n筋力（1RM）: 両群で有意な向上',statistics:'2×2 反復測定ANOVA\nCohen\'s d で効果量算出\n有意水準 p<0.05',discussion:'ボリュームと筋肥大に用量反応関係あり\n限界: サンプルサイズが小さい\n実用: 週10セット以上を目安に',quick_note:'ボリュームが多いほど筋肥大は大きい。用量反応関係の基礎論文。'},
+        {id:Date.now()-2000,title:'High-Intensity Interval Training for Cardiovascular Health',author:'Gibala MJ et al.',venue:'Sports Med',year:'2022',url:'',category:'持久力トレーニング',tags:['HIIT','心肺機能','RCT'],status:'reading',memo:'',aiSummary:'',aiKeywords:'',created:Date.now()-864e5*30,subjects:'',protocol:'',outcomes:'',statistics:'',discussion:'',quick_note:'HIITの心肺機能改善効果をレビュー'},
+      ];
+      for(const x of s)await sbFetch(SB_TABLE,{method:'POST',body:JSON.stringify(toRow(x))});
+      papers=s;
+    }
+  }catch(e){
+    document.getElementById('setup-error').style.display='block';
+    document.getElementById('setup-error').textContent='接続エラー: '+e.message;
+    document.getElementById('setup-screen').style.display='flex';
+    document.getElementById('app-screen').classList.remove('active');
+  }
+}
+async function save(p){
+  try{await sbFetch(SB_TABLE,{method:'POST',headers:{'Prefer':'resolution=merge-duplicates'},body:JSON.stringify(toRow(p))});}
+  catch(e){console.error('save error',e);}
+}
+async function deleteSb(id){
+  try{await sbFetch(SB_TABLE+'?id=eq.'+id,{method:'DELETE'});}catch(e){console.error(e);}
+}
+function esc(s){const d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
+
+function showPage(name,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');btn.classList.add('active');
+  if(name==='dash')renderDash();
+}
+
+function getFiltered(){
+  const q=document.getElementById('search-input').value.toLowerCase();
+  const st=document.getElementById('filter-status').value;
+  const cat=document.getElementById('filter-cat').value;
+  const sort=document.getElementById('sort-sel').value;
+  let list=papers.filter(p=>{
+    if(st&&p.status!==st)return false;
+    if(cat&&p.category!==cat)return false;
+    if(activeTag&&!(p.tags||[]).includes(activeTag))return false;
+    if(q){const h=(p.title+' '+p.author+' '+(p.memo||'')+' '+(p.quick_note||'')+' '+(p.tags||[]).join(' ')).toLowerCase();if(!h.includes(q))return false;}
+    return true;
+  });
+  return list.sort((a,b)=>sort==='date-asc'?a.created-b.created:sort==='date-desc'?b.created-a.created:sort==='title'?a.title.localeCompare(b.title,'ja'):({unread:0,reading:1,done:2}[a.status]-{unread:0,reading:1,done:2}[b.status]));
+}
+function renderAll(){renderStats();renderFilters();renderList();}
+function renderStats(){
+  document.getElementById('stats-sb').innerHTML=[['合計',papers.length],['読了',papers.filter(p=>p.status==='done').length],['読書中',papers.filter(p=>p.status==='reading').length],['未読',papers.filter(p=>p.status==='unread').length]].map(([l,n])=>`<div class="stat"><div class="stat-num">${n}</div><div class="stat-lbl">${l}</div></div>`).join('');
+}
+function renderFilters(){
+  const cs=document.getElementById('filter-cat'),cv=cs.value;
+  cs.innerHTML='<option value="">すべて</option>'+[...new Set(papers.map(p=>p.category).filter(Boolean))].sort().map(c=>`<option value="${esc(c)}"${c===cv?' selected':''}>${esc(c)}</option>`).join('');
+  document.getElementById('tag-cloud').innerHTML=[...new Set(papers.flatMap(p=>p.tags||[]))].sort().map(t=>`<button class="tag-btn${t===activeTag?' active':''}" onclick="toggleTag('${t.replace(/'/g,"\\'")}')">${esc(t)}</button>`).join('');
+}
+function toggleTag(t){activeTag=activeTag===t?null:t;renderAll();}
+function renderList(){
+  const list=getFiltered(),el=document.getElementById('paper-list');
+  if(!list.length){el.innerHTML='<div class="empty">論文が見つかりません<br><span style="font-size:12px;color:var(--text3)">「+ 追加」から登録してください</span></div>';return;}
+  el.innerHTML=list.map(p=>{
+    const sc={unread:'s-unread',reading:'s-reading',done:'s-done'}[p.status];
+    const sl={unread:'未読',reading:'読書中',done:'読了'}[p.status];
+    const tags=(p.tags||[]).map(t=>`<span class="tg">${esc(t)}</span>`).join('');
+    return `<div class="pc${p.id===selId?' sel':''}" onclick="openDetail(${p.id})">
+      <div class="ph"><div class="pt">${esc(p.title)}</div><span class="sb ${sc}">${sl}</span></div>
+      <div class="pm">${esc([p.author,p.venue,p.year].filter(Boolean).join(' · '))}</div>
+      <div class="pt-row">${tags}${p.url?'<span class="pdf-badge">PDF</span>':''}</div>
+      ${p.quick_note?`<div class="pnp">${esc(p.quick_note)}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+/* NOTE BLOCKS CONFIG */
+const NOTE_BLOCKS=[
+  {key:'subjects',label:'対象者・参加者',color:'var(--blue)'},
+  {key:'protocol',label:'介入プロトコル',color:'var(--purple)'},
+  {key:'outcomes',label:'主な結果・アウトカム',color:'var(--accent)'},
+  {key:'statistics',label:'統計解析',color:'var(--yellow)'},
+  {key:'discussion',label:'考察・限界・実用指標',color:'var(--orange)',full:true},
+];
+
+function openDetail(id){
+  selId=id;const p=papers.find(x=>x.id===id);if(!p)return;
+  document.getElementById('d-title').textContent=p.title;
+  document.getElementById('d-meta').textContent=[p.author,p.venue,p.year].filter(Boolean).join(' · ');
+  const sc={unread:'s-unread',reading:'s-reading',done:'s-done'}[p.status];
+  const sl={unread:'未読',reading:'読書中',done:'読了'}[p.status];
+  document.getElementById('d-tags').innerHTML=`<span class="sb ${sc}">${sl}</span>${(p.tags||[]).map(t=>`<span class="tg">${esc(t)}</span>`).join('')}${p.category?`<span class="tg">${esc(p.category)}</span>`:''}`;
+
+  // quick note
+  const qw=document.getElementById('d-quick-note-wrap');
+  if(p.quick_note){qw.style.display='block';qw.textContent=p.quick_note;}else qw.style.display='none';
+
+  // PDF
+  const ps=document.getElementById('pdf-url-section');
+  if(p.url){ps.style.display='';document.getElementById('d-pdf-url-text').textContent=p.url.length>55?p.url.slice(0,55)+'...':p.url;document.getElementById('d-pdf-link').href=p.url;}
+  else ps.style.display='none';
+
+  // Structured notes
+  const ng=document.getElementById('d-notes-grid');
+  ng.innerHTML=NOTE_BLOCKS.map(b=>{
+    const val=p[b.key]||'';
+    return `<div class="note-block${b.full?' full':''}">
+      <div class="note-label"><div class="note-label-dot" style="background:${b.color}"></div><span style="color:${b.color}">${b.label}</span></div>
+      <div class="note-content${!val?' note-empty':''}">${val?esc(val):'未記入'}</div>
+    </div>`;
+  }).join('');
+
+  // AI
+  const ab=document.getElementById('ai-box');
+  if(p.aiSummary){ab.style.display='block';ab.className='ai-box';ab.innerHTML=`<strong style="font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px">キーワード</strong>\n${esc(p.aiKeywords)}\n\n<strong style="font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px">要約</strong>\n${esc(p.aiSummary)}`;}
+  else{ab.style.display='none';}
+
+  clearPdfFile();document.getElementById('pdf-ai-box').style.display='none';document.getElementById('rec-area').innerHTML='';
+  document.getElementById('detail-overlay').classList.add('open');renderList();
+}
+function closeDetail(){document.getElementById('detail-overlay').classList.remove('open');selId=null;clearPdfFile();renderList();}
+async function deletePaperFromDetail(){if(!selId||!confirm('この論文を削除しますか？'))return;await deleteSb(selId);papers=papers.filter(p=>p.id!==selId);closeDetail();renderAll();}
+function editFromDetail(){const p=papers.find(x=>x.id===selId);if(!p)return;closeDetail();openEditModal(p);}
+
+/* PDF VIEWER */
+function openPdfViewer(){const p=papers.find(x=>x.id===selId);if(!p||!p.url)return;document.getElementById('pdf-viewer-title').textContent=p.title;document.getElementById('pdf-open-link').href=p.url;document.getElementById('pdf-iframe').src=p.url;document.getElementById('pdf-viewer').classList.add('open');}
+function closePdfViewer(){document.getElementById('pdf-viewer').classList.remove('open');document.getElementById('pdf-iframe').src='';}
+
+/* PDF UPLOAD */
+const dropZone=document.getElementById('pdf-drop');
+dropZone.addEventListener('dragover',e=>{e.preventDefault();dropZone.classList.add('drag');});
+dropZone.addEventListener('dragleave',()=>dropZone.classList.remove('drag'));
+dropZone.addEventListener('drop',e=>{e.preventDefault();dropZone.classList.remove('drag');const f=e.dataTransfer.files[0];if(f&&f.type==='application/pdf')loadPdfFile(f);});
+function onPdfFileSelect(e){const f=e.target.files[0];if(f)loadPdfFile(f);}
+function loadPdfFile(file){
+  document.getElementById('pdf-file-name').textContent=file.name+' ('+Math.round(file.size/1024)+'KB)';
+  document.getElementById('pdf-file-info').style.display='flex';
+  document.getElementById('pdf-drop').style.display='none';
+  const reader=new FileReader();reader.onload=e=>{currentPdfBase64=e.target.result.split(',')[1];};reader.readAsDataURL(file);
+}
+function clearPdfFile(){currentPdfBase64=null;document.getElementById('pdf-file-info').style.display='none';document.getElementById('pdf-drop').style.display='';document.getElementById('pdf-file-input').value='';}
+
+/* AI */
+async function callClaude(messages){
+  if(!apiKey){alert('AI機能にはAPIキーが必要です。');return null;}
+  const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1500,messages})});
+  if(!res.ok){const e=await res.json();throw new Error(e.error?.message||'APIエラー');}
+  return(await res.json()).content.map(c=>c.text||'').join('');
+}
+async function runPdfAI(mode){
+  if(!currentPdfBase64){alert('PDFファイルを先に選択してください。');return;}
+  const p=papers.find(x=>x.id===selId);
+  const box=document.getElementById('pdf-ai-box');
+  box.style.display='block';box.className='ai-box ai-loading';
+  box.textContent=mode==='summary'?'PDFを読み込み中...':'書誌情報を抽出中...';
+  [document.getElementById('pdf-ai-btn'),document.getElementById('pdf-ai-btn2')].forEach(b=>b.disabled=true);
+  const prompt=mode==='summary'
+    ?'この論文PDFを読み日本語で回答してください。\nキーワード: [5〜8個、カンマ区切り]\n要約: [3〜5文で貢献・手法・結果を説明]\n形式通りのみ出力してください。'
+    :'この論文PDFから書誌情報をJSON形式のみで回答してください:\n{"title":"","author":"","venue":"","year":"","category":"","tags":[]}';
+  try{
+    const text=await callClaude([{role:'user',content:[{type:'document',source:{type:'base64',media_type:'application/pdf',data:currentPdfBase64}},{type:'text',text:prompt}]}]);
+    if(!text)return;
+    if(mode==='summary'){
+      const kw=(text.match(/キーワード[:：]\s*(.+)/)||[])[1]?.trim()||'';
+      const sum=(text.match(/要約[:：]\s*([\s\S]+)/)||[])[1]?.trim()||text;
+      if(p){p.aiSummary=sum;p.aiKeywords=kw;save(p);}
+      const ab=document.getElementById('ai-box');ab.style.display='block';ab.className='ai-box';
+      ab.innerHTML=`<strong style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px">キーワード</strong>\n${esc(kw)}\n\n<strong style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px">要約</strong>\n${esc(sum)}`;
+      box.className='ai-box';box.innerHTML=`<span style="color:var(--accent)">✓ PDFから生成しました</span>`;
+    }else{
+      let info={};try{info=JSON.parse(text.replace(/```json|```/g,'').trim());}catch(e){}
+      if(p){if(info.title&&!p.title)p.title=info.title;if(info.author&&!p.author)p.author=info.author;if(info.venue&&!p.venue)p.venue=info.venue;if(info.year&&!p.year)p.year=info.year;if(info.category&&!p.category)p.category=info.category;if(info.tags?.length&&!p.tags?.length)p.tags=info.tags;save(p);renderAll();}
+      box.className='ai-box';box.innerHTML=`<span style="color:var(--accent)">✓ 書誌情報を反映しました</span>`;
+    }
+  }catch(e){box.className='ai-box';box.textContent='エラー: '+e.message;}
+  [document.getElementById('pdf-ai-btn'),document.getElementById('pdf-ai-btn2')].forEach(b=>b.disabled=false);
+}
+async function runAI(){
+  const p=papers.find(x=>x.id===selId);if(!p)return;
+  const btn=document.getElementById('ai-btn'),ab=document.getElementById('ai-box');
+  btn.disabled=true;btn.textContent='生成中...';
+  ab.style.display='block';ab.className='ai-box ai-loading';ab.textContent='生成中...';
+  try{
+    const text=await callClaude([{role:'user',content:`以下の論文について日本語で。\nタイトル: ${p.title}\n著者: ${p.author||'不明'}\n掲載先: ${p.venue||''} ${p.year||''}\nタグ: ${(p.tags||[]).join(', ')}\n\nキーワード: [5〜8個、カンマ区切り]\n要約: [3〜5文]`}]);
+    if(!text)return;
+    const kw=(text.match(/キーワード[:：]\s*(.+)/)||[])[1]?.trim()||'';
+    const sum=(text.match(/要約[:：]\s*([\s\S]+)/)||[])[1]?.trim()||text;
+    p.aiSummary=sum;p.aiKeywords=kw;save(p);
+    ab.className='ai-box';ab.innerHTML=`<strong style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px">キーワード</strong>\n${esc(kw)}\n\n<strong style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px">要約</strong>\n${esc(sum)}`;
+  }catch(e){ab.className='ai-box';ab.textContent='エラー: '+e.message;}
+  btn.disabled=false;btn.textContent='再生成';
+}
+async function runRec(){
+  const p=papers.find(x=>x.id===selId);if(!p)return;
+  const ra=document.getElementById('rec-area');
+  ra.innerHTML='<div class="ai-loading" style="font-size:12px;padding:8px 0;color:var(--text3)">関連論文を検索中...</div>';
+  const others=papers.filter(x=>x.id!==selId).map(x=>`- ${x.title} (タグ: ${(x.tags||[]).join(', ')})`).join('\n');
+  if(!others){ra.innerHTML='<div style="font-size:12px;color:var(--text3);padding:6px 0">他の論文がありません。</div>';return;}
+  try{
+    const text=await callClaude([{role:'user',content:`論文「${p.title}」(タグ: ${(p.tags||[]).join(', ')}) に関連する論文を推薦してください。\n\n登録済み:\n${others}\n\n最大3件をJSON形式のみで:\n[{"title":"...","reason":"1文"}]`}]);
+    if(!text)return;
+    let recs=[];try{recs=JSON.parse(text.replace(/```json|```/g,'').trim());}catch(e){}
+    if(!recs.length){ra.innerHTML='<div style="font-size:12px;color:var(--text3);padding:6px 0">関連論文が見つかりませんでした。</div>';return;}
+    ra.innerHTML=recs.map(r=>{const found=papers.find(x=>x.title===r.title);return `<div class="rec-card" onclick="${found?`openRecPaper(${found.id})`:''}" style="${!found?'cursor:default':''}"><div class="rec-title">${esc(r.title)}</div><div class="rec-reason">${esc(r.reason)}</div>${found?`<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:5px">${(found.tags||[]).map(t=>`<span class="tg">${esc(t)}</span>`).join('')}</div>`:''}</div>`;}).join('');
+  }catch(e){ra.innerHTML=`<div style="font-size:12px;color:var(--red);padding:6px 0">${esc(e.message)}</div>`;}
+}
+function openRecPaper(id){closeDetail();setTimeout(()=>openDetail(id),100);}
+
+/* LOOKUP */
+let lookupMode='doi';
+function switchTab(mode){
+  lookupMode=mode;
+  document.getElementById('tab-doi').classList.toggle('active',mode==='doi');
+  document.getElementById('tab-pm').classList.toggle('active',mode==='pm');
+  const inp=document.getElementById('f-lookup-input');
+  const hint=document.getElementById('lookup-hint');
+  if(mode==='doi'){inp.placeholder='10.1519/... または https://doi.org/...';hint.innerHTML='DOI例: <code>10.1519/JSC.0000000000004000</code>';}
+  else{inp.placeholder='33278358 または https://pubmed.ncbi.nlm.nih.gov/33278358/';hint.innerHTML='PMID例: <code>33278358</code> またはPubMed URL';}
+  document.getElementById('lookup-status').style.display='none';
+}
+function fillFields(info){
+  if(info.title)document.getElementById('f-title').value=info.title;
+  if(info.author)document.getElementById('f-author').value=info.author;
+  if(info.venue)document.getElementById('f-venue').value=info.venue;
+  if(info.year)document.getElementById('f-year').value=String(info.year);
+  if(info.url&&!document.getElementById('f-url').value)document.getElementById('f-url').value=info.url;
+  if(info.category&&!document.getElementById('f-category').value)document.getElementById('f-category').value=info.category;
+  if(info.tags&&!document.getElementById('f-tags').value)document.getElementById('f-tags').value=info.tags;
+  if(info.memo&&!document.getElementById('f-quick_note').value)document.getElementById('f-quick_note').value=info.memo;
+}
+async function fetchLookup(){
+  const raw=document.getElementById('f-lookup-input').value.trim();
+  if(!raw){alert('IDまたはURLを入力してください');return;}
+  const btn=document.getElementById('lookup-fetch-btn');
+  const status=document.getElementById('lookup-status');
+  btn.disabled=true;btn.textContent='取得中...';
+  status.style.display='block';status.style.color='var(--blue)';
+  if(lookupMode==='doi'){
+    const doi=raw.replace(/^https?:\/\/(dx\.)?doi\.org\//i,'').trim();
+    status.textContent='CrossRef APIに問い合わせ中...';
+    try{
+      const res=await fetch('https://api.crossref.org/works/'+encodeURIComponent(doi));
+      if(!res.ok)throw new Error(res.status===404?'DOIが見つかりません':'エラー '+res.status);
+      const w=(await res.json()).message;
+      fillFields({title:(w.title||[])[0]||'',author:(w.author||[]).map(a=>[a.family,a.given].filter(Boolean).join(' ')).join(', '),venue:(w['container-title']||[])[0]||'',year:((w.published?.['date-parts']||w['published-print']?.['date-parts']||[])[0]||[])[0],url:'https://doi.org/'+doi,category:(w.subject||[])[0]||'',tags:(w.subject||[]).slice(0,5).join(', ')});
+      status.style.color='var(--accent)';status.textContent='✓ 取得しました';
+    }catch(e){status.style.color='var(--red)';status.textContent='✕ '+e.message;}
+  }else{
+    let pmid=raw.replace(/^https?:\/\/pubmed\.ncbi\.nlm\.nih\.gov\//i,'').replace(/[\/?#].*/,'').trim();
+    if(!pmid||!/^\d+$/.test(pmid)){status.style.color='var(--red)';status.textContent='✕ PMIDを正しく入力してください';btn.disabled=false;btn.textContent='取得';return;}
+    status.textContent='NCBI E-utilities APIに問い合わせ中...';
+    try{
+      const sumRes=await fetch('https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&id='+pmid+'&retmode=json');
+      if(!sumRes.ok)throw new Error('PubMed APIエラー');
+      const art=(await sumRes.json()).result?.[pmid];
+      if(!art||art.error)throw new Error('PMID '+pmid+' が見つかりません');
+      const doiId=(art.articleids||[]).find(x=>x.idtype==='doi');
+      let abstract='';
+      try{const abRes=await fetch('https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id='+pmid+'&rettype=abstract&retmode=text');const abText=await abRes.text();const m=abText.match(/Abstract\n([\s\S]+?)(?=\n\n[A-Z]|Copyright|Author information|\nPMID)/i);if(m)abstract=m[1].replace(/\n/g,' ').trim().slice(0,400)+(m[1].length>400?'...':'');}catch(e){}
+      fillFields({title:art.title||'',author:(art.authors||[]).map(a=>a.name).join(', '),venue:art.source||'',year:(art.pubdate||'').match(/\d{4}/)?.[0]||'',url:doiId?'https://doi.org/'+doiId.value:'https://pubmed.ncbi.nlm.nih.gov/'+pmid+'/',memo:abstract});
+      status.style.color='var(--accent)';status.textContent='✓ PubMedから取得しました'+(abstract?' アブストラクトを一言メモに追加':'');
+    }catch(e){status.style.color='var(--red)';status.textContent='✕ '+e.message;}
+  }
+  btn.disabled=false;btn.textContent='取得';
+}
+
+/* ADD/EDIT */
+function openAdd(){editId=null;clearForm();document.getElementById('modal-label').textContent='論文を追加';document.getElementById('del-btn').style.display='none';document.getElementById('add-overlay').classList.add('open');}
+function closeAdd(){document.getElementById('add-overlay').classList.remove('open');editId=null;}
+function openEditModal(p){
+  editId=p.id;document.getElementById('modal-label').textContent='論文を編集';document.getElementById('del-btn').style.display='';
+  document.getElementById('f-title').value=p.title||'';document.getElementById('f-author').value=p.author||'';
+  document.getElementById('f-venue').value=p.venue||'';document.getElementById('f-year').value=p.year||'';
+  document.getElementById('f-url').value=p.url||'';document.getElementById('f-category').value=p.category||'';
+  document.getElementById('f-tags').value=(p.tags||[]).join(', ');document.getElementById('f-status').value=p.status||'unread';
+  document.getElementById('f-quick_note').value=p.quick_note||'';
+  document.getElementById('f-subjects').value=p.subjects||'';document.getElementById('f-protocol').value=p.protocol||'';
+  document.getElementById('f-outcomes').value=p.outcomes||'';document.getElementById('f-statistics').value=p.statistics||'';
+  document.getElementById('f-discussion').value=p.discussion||'';
+  document.getElementById('add-overlay').classList.add('open');
+}
+function clearForm(){
+  ['f-title','f-author','f-venue','f-year','f-url','f-category','f-tags','f-quick_note','f-subjects','f-protocol','f-outcomes','f-statistics','f-discussion'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f-status').value='unread';
+  document.getElementById('f-lookup-input').value='';
+  document.getElementById('lookup-status').style.display='none';
+}
+async function savePaper(){
+  const title=document.getElementById('f-title').value.trim();if(!title){alert('タイトルは必須です');return;}
+  const tags=document.getElementById('f-tags').value.split(',').map(t=>t.trim()).filter(Boolean);
+  let paper;
+  if(editId){
+    paper=papers.find(x=>x.id===editId);
+    if(paper){
+      paper.title=title;paper.author=document.getElementById('f-author').value.trim();paper.venue=document.getElementById('f-venue').value.trim();paper.year=document.getElementById('f-year').value.trim();paper.url=document.getElementById('f-url').value.trim();paper.category=document.getElementById('f-category').value.trim();paper.tags=tags;paper.status=document.getElementById('f-status').value;paper.quick_note=document.getElementById('f-quick_note').value.trim();
+      paper.subjects=document.getElementById('f-subjects').value.trim();paper.protocol=document.getElementById('f-protocol').value.trim();paper.outcomes=document.getElementById('f-outcomes').value.trim();paper.statistics=document.getElementById('f-statistics').value.trim();paper.discussion=document.getElementById('f-discussion').value.trim();
+    }
+  }else{
+    paper={id:Date.now(),title,author:document.getElementById('f-author').value.trim(),venue:document.getElementById('f-venue').value.trim(),year:document.getElementById('f-year').value.trim(),url:document.getElementById('f-url').value.trim(),category:document.getElementById('f-category').value.trim(),tags,status:document.getElementById('f-status').value,quick_note:document.getElementById('f-quick_note').value.trim(),subjects:document.getElementById('f-subjects').value.trim(),protocol:document.getElementById('f-protocol').value.trim(),outcomes:document.getElementById('f-outcomes').value.trim(),statistics:document.getElementById('f-statistics').value.trim(),discussion:document.getElementById('f-discussion').value.trim(),memo:'',created:Date.now(),aiSummary:'',aiKeywords:''};
+  }
+  await save(paper);
+  if(!editId)papers.unshift(paper);
+  closeAdd();renderAll();
+}
+async function deletePaper(){if(!editId||!confirm('削除しますか？'))return;await deleteSb(editId);papers=papers.filter(p=>p.id!==editId);closeAdd();renderAll();}
+
+/* DASHBOARD */
+function renderDash(){
+  const db=document.getElementById('dash-body');
+  const total=papers.length,done=papers.filter(p=>p.status==='done').length,reading=papers.filter(p=>p.status==='reading').length,unread=papers.filter(p=>p.status==='unread').length;
+  const pct=total?Math.round(done/total*100):0;
+  const now=new Date(),months=[];
+  for(let i=11;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);months.push({year:d.getFullYear(),month:d.getMonth(),label:(d.getMonth()+1)+'月',count:0});}
+  papers.filter(p=>p.status==='done').forEach(p=>{const d=new Date(p.created);const m=months.find(x=>x.year===d.getFullYear()&&x.month===d.getMonth());if(m)m.count++;});
+  const maxM=Math.max(1,...months.map(m=>m.count));
+  const catMap={};papers.forEach(p=>{if(p.category)catMap[p.category]=(catMap[p.category]||0)+1;});
+  const cats=Object.entries(catMap).sort((a,b)=>b[1]-a[1]),maxC=Math.max(1,...Object.values(catMap).concat([1]));
+  const tagMap={};papers.forEach(p=>(p.tags||[]).forEach(t=>{tagMap[t]=(tagMap[t]||0)+1;}));
+  const topTags=Object.entries(tagMap).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  db.innerHTML=`
+    <div class="dash-metrics">
+      <div class="metric"><div class="metric-num">${total}</div><div class="metric-lbl">登録論文</div></div>
+      <div class="metric"><div class="metric-num">${done}</div><div class="metric-lbl">読了</div></div>
+      <div class="metric"><div class="metric-num">${reading}</div><div class="metric-lbl">読書中</div></div>
+      <div class="metric"><div class="metric-num">${pct}%</div><div class="metric-lbl">読了率</div></div>
+    </div>
+    <div class="dash-row">
+      <div class="dash-card"><h3>読了状態</h3>
+        <div class="donut-wrap"><svg width="80" height="80" viewBox="0 0 80 80">${donutPaths(done,reading,unread)}</svg>
+          <div class="legend">
+            <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div>読了 ${done}</div>
+            <div class="legend-item"><div class="legend-dot" style="background:var(--blue)"></div>読書中 ${reading}</div>
+            <div class="legend-item"><div class="legend-dot" style="background:var(--yellow)"></div>未読 ${unread}</div>
+          </div>
+        </div>
+      </div>
+      <div class="dash-card"><h3>カテゴリ別</h3>
+        ${cats.slice(0,5).map(([c,n])=>`<div class="bar-row"><div class="bar-label">${esc(c)}</div><div class="bar-track"><div class="bar-fill" style="width:${Math.round(n/maxC*100)}%"></div></div><div class="bar-count">${n}</div></div>`).join('')||'<div style="color:var(--text3);font-size:12px">データなし</div>'}
+      </div>
+    </div>
+    <div class="dash-card"><h3>月別読了数（過去12ヶ月）</h3>
+      <div class="monthly-grid">${months.map(m=>`<div class="month-col"><div class="month-bar" style="height:${Math.round(m.count/maxM*60)+3}px;background:${m.count>0?'var(--accent)':'var(--bg4)'}"></div><div class="month-lbl">${m.label}</div></div>`).join('')}</div>
+    </div>
+    <div class="dash-card"><h3>よく使うタグ</h3>
+      <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:4px">${topTags.map(([t,n])=>`<span style="font-size:11px;padding:3px 9px;border-radius:20px;background:var(--bg3);border:1px solid var(--border);color:var(--text2)">${esc(t)} <strong style="font-weight:600;color:var(--accent)">${n}</strong></span>`).join('')||'<span style="color:var(--text3);font-size:12px">タグなし</span>'}</div>
+    </div>`;
+}
+function donutPaths(done,reading,unread){
+  const total=done+reading+unread;
+  if(!total)return`<circle cx="40" cy="40" r="30" fill="none" stroke="var(--bg4)" stroke-width="12"/>`;
+  const colors=['#6ee7b7','#60a5fa','#fbbf24'],vals=[done,reading,unread];
+  let paths='',start=0;
+  vals.forEach((v,i)=>{if(!v)return;const frac=v/total,angle=frac*2*Math.PI,x1=40+30*Math.sin(start),y1=40-30*Math.cos(start),x2=40+30*Math.sin(start+angle),y2=40-30*Math.cos(start+angle);paths+=`<path d="M40 40 L${x1.toFixed(2)} ${y1.toFixed(2)} A30 30 0 ${frac>0.5?1:0} 1 ${x2.toFixed(2)} ${y2.toFixed(2)} Z" fill="${colors[i]}" opacity="0.85"/>`;start+=angle;});
+  return paths+`<circle cx="40" cy="40" r="18" fill="var(--bg2)"/>`;
+}
+
+launch();
+</script>
+</body>
+</html>
