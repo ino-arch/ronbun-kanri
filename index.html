@@ -236,13 +236,21 @@ textarea.note-input{background:var(--bg4);border-color:var(--border);font-size:1
 
   <!-- MATRIX PAGE -->
   <div class="page" id="page-matrix">
-    <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--bg1);flex-shrink:0">
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--border);background:var(--bg1);flex-shrink:0;flex-wrap:wrap">
       <select id="matrix-cat-filter" onchange="renderMatrix()" style="width:160px;background:var(--bg2)"><option value="">すべてのカテゴリ</option></select>
       <select id="matrix-status-filter" onchange="renderMatrix()" style="width:120px;background:var(--bg2)"><option value="">すべての状態</option><option value="unread">未読</option><option value="reading">読書中</option><option value="done">読了</option></select>
+      <select id="matrix-col-filter" onchange="renderMatrix()" style="width:150px;background:var(--bg2)">
+        <option value="all">全項目表示</option>
+        <option value="subjects">対象者のみ</option>
+        <option value="protocol">プロトコルのみ</option>
+        <option value="outcomes">結果のみ</option>
+        <option value="statistics">統計のみ</option>
+        <option value="discussion">考察のみ</option>
+      </select>
       <div style="flex:1"></div>
       <span style="font-size:11px;color:var(--text3)" id="matrix-count"></span>
     </div>
-    <div style="flex:1;overflow:auto;padding:12px">
+    <div style="flex:1;overflow:auto">
       <div id="matrix-body"></div>
     </div>
   </div>
@@ -464,9 +472,10 @@ function renderMatrix(){
   const cats=[...new Set(papers.map(p=>p.category).filter(Boolean))].sort();
   const mc=document.getElementById('matrix-cat-filter');
   const mcv=mc.value;
-  mc.innerHTML='<option value="">すべてのカテゴリ</option>'+cats.map(c=>`<option value="${esc(c)}"${c===mcv?' selected':''}}>${esc(c)}</option>`).join('');
+  mc.innerHTML='<option value="">すべてのカテゴリ</option>'+cats.map(c=>`<option value="${esc(c)}"${c===mcv?' selected':''}>${esc(c)}</option>`).join('');
   const catF=mc.value;
   const stF=document.getElementById('matrix-status-filter').value;
+  const colF=document.getElementById('matrix-col-filter').value;
   let list=papers.filter(p=>{
     if(catF&&p.category!==catF)return false;
     if(stF&&p.status!==stF)return false;
@@ -474,49 +483,52 @@ function renderMatrix(){
   });
   document.getElementById('matrix-count').textContent=list.length+' 件';
   const mb=document.getElementById('matrix-body');
-  if(!list.length){mb.innerHTML='<div style="text-align:center;padding:40px;color:var(--text3);font-size:13px">論文がありません</div>';return;}
+  if(!list.length){mb.innerHTML='<div style="text-align:center;padding:48px;color:var(--text3);font-size:13px">論文がありません</div>';return;}
   const sl={unread:'未読',reading:'読書中',done:'読了'};
   const sc={unread:'s-unread',reading:'s-reading',done:'s-done'};
   if(catF){
-    mb.innerHTML=renderMatrixTable(list,sl,sc);
+    mb.innerHTML='<div style="overflow-x:auto">'+renderMatrixTable(list,sl,sc,colF)+'</div>';
   }else{
     const grouped={};
     list.forEach(p=>{const c=p.category||'未分類';if(!grouped[c])grouped[c]=[];grouped[c].push(p);});
-    mb.innerHTML=Object.keys(grouped).sort().map(cat=>`
-      <div class="matrix-section">
-        <div class="matrix-cat-label">
-          <span>${esc(cat)}</span>
-          <span class="matrix-cat-count">${grouped[cat].length}</span>
-        </div>
-        <div class="matrix-wrap">${renderMatrixTable(grouped[cat],sl,sc)}</div>
-      </div>`).join('');
+    mb.innerHTML=Object.keys(grouped).sort().map(cat=>
+      '<div class="matrix-section">'+
+      '<div class="matrix-cat-header">'+
+      '<span class="matrix-cat-name">'+esc(cat)+'</span>'+
+      '<span class="matrix-cat-count">'+grouped[cat].length+' 件</span>'+
+      '</div>'+
+      '<div style="overflow-x:auto">'+renderMatrixTable(grouped[cat],sl,sc,colF)+'</div>'+
+      '</div>'
+    ).join('');
   }
 }
-function renderMatrixTable(list,sl,sc){
-  return `<table class="matrix-table">
-    <thead><tr>
-      <th>論文</th>
-      <th class="col-subjects">対象者・参加者</th>
-      <th class="col-protocol">介入プロトコル</th>
-      <th class="col-outcomes">主な結果</th>
-      <th class="col-stats">統計解析</th>
-      <th class="col-disc">考察・限界</th>
-      <th class="col-note">一言メモ</th>
-    </tr></thead>
-    <tbody>${list.map(p=>`<tr onclick="openDetailFromMatrix(${p.id})">
-      <td>
-        <div style="font-weight:500;font-size:12px;line-height:1.4;margin-bottom:4px">${esc(p.title)}</div>
-        <div style="font-size:10px;color:var(--text3)">${esc([p.author,p.year].filter(Boolean).join(' · '))}</div>
-        <div style="margin-top:5px"><span class="sb ${sc[p.status]}" style="font-size:10px">${sl[p.status]}</span></div>
-      </td>
-      <td><div class="matrix-cell${!p.subjects?' matrix-empty':''}">${p.subjects?esc(p.subjects):'—'}</div></td>
-      <td><div class="matrix-cell${!p.protocol?' matrix-empty':''}">${p.protocol?esc(p.protocol):'—'}</div></td>
-      <td><div class="matrix-cell${!p.outcomes?' matrix-empty':''}">${p.outcomes?esc(p.outcomes):'—'}</div></td>
-      <td><div class="matrix-cell${!p.statistics?' matrix-empty':''}">${p.statistics?esc(p.statistics):'—'}</div></td>
-      <td><div class="matrix-cell${!p.discussion?' matrix-empty':''}">${p.discussion?esc(p.discussion):'—'}</div></td>
-      <td><div class="matrix-cell${!p.quick_note?' matrix-empty':''}">${p.quick_note?esc(p.quick_note):'—'}</div></td>
-    </tr>`).join('')}</tbody>
-  </table>`;
+const ALL_COLS=[
+  {key:'subjects',label:'対象者・参加者',color:'var(--blue)'},
+  {key:'protocol',label:'介入プロトコル',color:'var(--purple)'},
+  {key:'outcomes',label:'主な結果',color:'var(--accent)'},
+  {key:'statistics',label:'統計解析',color:'var(--yellow)'},
+  {key:'discussion',label:'考察・限界',color:'var(--orange)'},
+  {key:'quick_note',label:'一言メモ',color:'var(--text2)'},
+];
+function renderMatrixTable(list,sl,sc,colF){
+  const cols=colF==='all'?ALL_COLS:ALL_COLS.filter(c=>c.key===colF);
+  const minW=(200+cols.length*220)+'px';
+  const thead='<thead><tr><th class="col-title" style="width:200px">論文</th>'+
+    cols.map(c=>'<th class="col-data" style="width:220px"><span style="color:'+c.color+'">'+c.label+'</span></th>').join('')+
+    '</tr></thead>';
+  const tbody='<tbody>'+list.map(p=>{
+    const tds=cols.map(c=>{
+      const val=p[c.key]||'';
+      return '<td class="col-data"><div class="matrix-cell'+(val?'':' matrix-empty')+'">'+(val?esc(val):'—')+'</div></td>';
+    }).join('');
+    return '<tr onclick="openDetailFromMatrix('+p.id+')">'+
+      '<td class="col-title">'+
+      '<div style="font-weight:500;font-size:12px;line-height:1.45;margin-bottom:5px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">'+esc(p.title)+'</div>'+
+      '<div style="font-size:10px;color:var(--text3);margin-bottom:6px">'+esc([p.author,p.year].filter(Boolean).join(' · '))+'</div>'+
+      '<span class="sb '+sc[p.status]+'" style="font-size:10px">'+sl[p.status]+'</span>'+
+      '</td>'+tds+'</tr>';
+  }).join('')+'</tbody>';
+  return '<table class="matrix-table" style="min-width:'+minW+'">'+thead+tbody+'</table>';
 }
 function openDetailFromMatrix(id){openDetail(id);}
 function renderStats(){
