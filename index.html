@@ -204,6 +204,7 @@ textarea.note-input{background:var(--bg4);border-color:var(--border);font-size:1
     <div class="nav-logo"><div class="nav-logo-dot"></div>論文管理</div>
     <button class="nav-tab active" onclick="showPage('list',this)">ライブラリ</button>
     <button class="nav-tab" onclick="showPage('dash',this)">ダッシュボード</button>
+    <button class="nav-tab" onclick="showPage('matrix',this)">比較表</button>
     <div class="nav-spacer"></div>
     <span class="sync-dot"></span><span class="sync-label">クラウド同期</span>
     <button class="btn-add" onclick="openAdd()" style="margin-left:12px">+ 追加</button>
@@ -231,6 +232,19 @@ textarea.note-input{background:var(--bg4);border-color:var(--border);font-size:1
   <!-- DASHBOARD PAGE -->
   <div class="page" id="page-dash">
     <div class="dash-body" id="dash-body"></div>
+  </div>
+
+  <!-- MATRIX PAGE -->
+  <div class="page" id="page-matrix">
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--bg1);flex-shrink:0">
+      <select id="matrix-cat-filter" onchange="renderMatrix()" style="width:160px;background:var(--bg2)"><option value="">すべてのカテゴリ</option></select>
+      <select id="matrix-status-filter" onchange="renderMatrix()" style="width:120px;background:var(--bg2)"><option value="">すべての状態</option><option value="unread">未読</option><option value="reading">読書中</option><option value="done">読了</option></select>
+      <div style="flex:1"></div>
+      <span style="font-size:11px;color:var(--text3)" id="matrix-count"></span>
+    </div>
+    <div style="flex:1;overflow:auto;padding:12px">
+      <div id="matrix-body"></div>
+    </div>
   </div>
 </div>
 
@@ -428,6 +442,7 @@ function showPage(name,btn){
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');btn.classList.add('active');
   if(name==='dash')renderDash();
+  if(name==='matrix')renderMatrix();
 }
 
 function getFiltered(){
@@ -445,6 +460,65 @@ function getFiltered(){
   return list.sort((a,b)=>sort==='date-asc'?a.created-b.created:sort==='date-desc'?b.created-a.created:sort==='title'?a.title.localeCompare(b.title,'ja'):({unread:0,reading:1,done:2}[a.status]-{unread:0,reading:1,done:2}[b.status]));
 }
 function renderAll(){renderStats();renderFilters();renderList();}
+function renderMatrix(){
+  const cats=[...new Set(papers.map(p=>p.category).filter(Boolean))].sort();
+  const mc=document.getElementById('matrix-cat-filter');
+  const mcv=mc.value;
+  mc.innerHTML='<option value="">すべてのカテゴリ</option>'+cats.map(c=>`<option value="${esc(c)}"${c===mcv?' selected':''}}>${esc(c)}</option>`).join('');
+  const catF=mc.value;
+  const stF=document.getElementById('matrix-status-filter').value;
+  let list=papers.filter(p=>{
+    if(catF&&p.category!==catF)return false;
+    if(stF&&p.status!==stF)return false;
+    return true;
+  });
+  document.getElementById('matrix-count').textContent=list.length+' 件';
+  const mb=document.getElementById('matrix-body');
+  if(!list.length){mb.innerHTML='<div style="text-align:center;padding:40px;color:var(--text3);font-size:13px">論文がありません</div>';return;}
+  const sl={unread:'未読',reading:'読書中',done:'読了'};
+  const sc={unread:'s-unread',reading:'s-reading',done:'s-done'};
+  if(catF){
+    mb.innerHTML=renderMatrixTable(list,sl,sc);
+  }else{
+    const grouped={};
+    list.forEach(p=>{const c=p.category||'未分類';if(!grouped[c])grouped[c]=[];grouped[c].push(p);});
+    mb.innerHTML=Object.keys(grouped).sort().map(cat=>`
+      <div class="matrix-section">
+        <div class="matrix-cat-label">
+          <span>${esc(cat)}</span>
+          <span class="matrix-cat-count">${grouped[cat].length}</span>
+        </div>
+        <div class="matrix-wrap">${renderMatrixTable(grouped[cat],sl,sc)}</div>
+      </div>`).join('');
+  }
+}
+function renderMatrixTable(list,sl,sc){
+  return `<table class="matrix-table">
+    <thead><tr>
+      <th>論文</th>
+      <th class="col-subjects">対象者・参加者</th>
+      <th class="col-protocol">介入プロトコル</th>
+      <th class="col-outcomes">主な結果</th>
+      <th class="col-stats">統計解析</th>
+      <th class="col-disc">考察・限界</th>
+      <th class="col-note">一言メモ</th>
+    </tr></thead>
+    <tbody>${list.map(p=>`<tr onclick="openDetailFromMatrix(${p.id})">
+      <td>
+        <div style="font-weight:500;font-size:12px;line-height:1.4;margin-bottom:4px">${esc(p.title)}</div>
+        <div style="font-size:10px;color:var(--text3)">${esc([p.author,p.year].filter(Boolean).join(' · '))}</div>
+        <div style="margin-top:5px"><span class="sb ${sc[p.status]}" style="font-size:10px">${sl[p.status]}</span></div>
+      </td>
+      <td><div class="matrix-cell${!p.subjects?' matrix-empty':''}">${p.subjects?esc(p.subjects):'—'}</div></td>
+      <td><div class="matrix-cell${!p.protocol?' matrix-empty':''}">${p.protocol?esc(p.protocol):'—'}</div></td>
+      <td><div class="matrix-cell${!p.outcomes?' matrix-empty':''}">${p.outcomes?esc(p.outcomes):'—'}</div></td>
+      <td><div class="matrix-cell${!p.statistics?' matrix-empty':''}">${p.statistics?esc(p.statistics):'—'}</div></td>
+      <td><div class="matrix-cell${!p.discussion?' matrix-empty':''}">${p.discussion?esc(p.discussion):'—'}</div></td>
+      <td><div class="matrix-cell${!p.quick_note?' matrix-empty':''}">${p.quick_note?esc(p.quick_note):'—'}</div></td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+}
+function openDetailFromMatrix(id){openDetail(id);}
 function renderStats(){
   document.getElementById('stats-sb').innerHTML=[['合計',papers.length],['読了',papers.filter(p=>p.status==='done').length],['読書中',papers.filter(p=>p.status==='reading').length],['未読',papers.filter(p=>p.status==='unread').length]].map(([l,n])=>`<div class="stat"><div class="stat-num">${n}</div><div class="stat-lbl">${l}</div></div>`).join('');
 }
