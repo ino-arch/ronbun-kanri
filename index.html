@@ -742,7 +742,7 @@ const ALL_COLS=[
 function renderMatrixTable(list,sl,sc,colF){
   const cols=colF==='all'?ALL_COLS:ALL_COLS.filter(c=>c.key===colF);
   const minW=(200+cols.length*220)+'px';
-  const thead='<thead><tr><th class="col-title" style="width:200px">論文</th><th class="col-data" style="width:200px"><span style="color:var(--purple)">目的・研究課題</span></th>'+
+  const thead='<thead><tr><th class="col-title" style="width:200px">論文</th>'+
     cols.map(c=>'<th class="col-data" style="width:220px"><span style="color:'+c.color+'">'+c.label+'</span></th>').join('')+
     '</tr></thead>';
   const tbody='<tbody>'+list.map(p=>{
