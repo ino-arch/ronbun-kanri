@@ -636,7 +636,7 @@ function showPage(name,btn){
 
 function getFiltered(){
   const q=document.getElementById('search-input').value.toLowerCase();
-  const st=document.getElementById('filter-status').value;
+  const stEl=document.getElementById('filter-status');const st=stEl?stEl.value:'';
   const cat=document.getElementById('filter-cat').value;
   const sort=document.getElementById('sort-sel').value;
   let list=papers.filter(p=>{
@@ -744,9 +744,10 @@ function renderMatrixTable(list,sl,sc,colF){
 function openDetailFromMatrix(id){openDetail(id);}
 function renderStats(){}
 function renderFilters(){
-  const cs=document.getElementById('filter-cat'),cv=cs.value;
-  cs.innerHTML='<option value="">すべて</option>'+[...new Set(papers.map(p=>p.category).filter(Boolean))].sort().map(c=>`<option value="${esc(c)}"${c===cv?' selected':''}>${esc(c)}</option>`).join('');
-  document.getElementById('tag-cloud').innerHTML=[...new Set(papers.flatMap(p=>p.tags||[]))].sort().map(t=>`<button class="tag-btn${t===activeTag?' active':''}" style="${t!==activeTag&&tagColors[t]?`color:${tagColors[t]};border-color:${tagColors[t]}66;background:${tagColors[t]}18`:''}" onclick="toggleTag('${t.replace(/'/g,"\\'")}')">${esc(t)}</button>`).join('');
+  const cs=document.getElementById('filter-cat');
+  if(!cs)return;
+  const cv=cs.value;
+  cs.innerHTML='<option value="">すべてのカテゴリ</option>'+[...new Set(papers.map(p=>p.category).filter(Boolean))].sort().map(c=>`<option value="${esc(c)}"${c===cv?' selected':''}>${esc(c)}</option>`).join('');
 }
 function toggleTag(t){activeTag=activeTag===t?null:t;smartFilter=null;activeCollection=null;renderAll();}
 function renderList(){
