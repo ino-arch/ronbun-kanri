@@ -206,6 +206,7 @@ textarea.note-input{background:var(--bg4);border-color:var(--border);font-size:1
     <button class="nav-tab active" onclick="showPage('list',this)">ライブラリ</button>
     <button class="nav-tab" onclick="showPage('dash',this)">ダッシュボード</button>
     <button class="nav-tab" onclick="showPage('matrix',this)">比較表</button>
+    <button class="nav-tab" onclick="showPage('tags',this)">タグ管理</button>
     <div class="nav-spacer"></div>
     <span class="sync-dot"></span><span class="sync-label">クラウド同期</span>
     <button class="btn-add" onclick="openAdd()" style="margin-left:12px">+ 追加</button>
@@ -233,6 +234,18 @@ textarea.note-input{background:var(--bg4);border-color:var(--border);font-size:1
   <!-- DASHBOARD PAGE -->
   <div class="page" id="page-dash">
     <div class="dash-body" id="dash-body"></div>
+  </div>
+
+  <!-- TAG MANAGER PAGE -->
+  <div class="page" id="page-tags">
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--bg1);flex-shrink:0">
+      <span style="font-size:12px;font-weight:500;color:var(--text2)">タグに色を設定する</span>
+      <div style="flex:1"></div>
+      <span style="font-size:11px;color:var(--text3)" id="tag-mgr-count"></span>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:16px">
+      <div id="tag-mgr-body" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px"></div>
+    </div>
   </div>
 
   <!-- MATRIX PAGE -->
@@ -306,6 +319,7 @@ textarea.note-input{background:var(--bg4);border-color:var(--border);font-size:1
       <div class="fr"><label>主な結果・アウトカム</label><textarea id="f-outcomes" placeholder="例: 筋断面積 +12%（p&lt;0.05）&#10;1RM +18%&#10;筋力とタンパク摂取量に有意な相関（r=0.72）"></textarea></div>
       <div class="fr"><label>統計解析方法</label><textarea id="f-statistics" placeholder="例: 2×2 反復測定ANOVA&#10;効果量: Cohen's d&#10;有意水準: p&lt;0.05"></textarea></div>
       <div class="fr" style="grid-column:1/-1"><label>考察・限界・実用上の指標</label><textarea id="f-discussion" placeholder="例: サンプルサイズが小さい&#10;介入期間が短い&#10;実用上は週2回でも効果が期待できる"></textarea></div>
+      <div class="fr" style="grid-column:1/-1"><label>先行研究としての活用メモ</label><textarea id="f-prior_research" placeholder="例: ○○の研究の対照群として引用できる&#10;サンプルサイズの根拠として使える&#10;同様の介入で異なる結果が出ており対比として有用"></textarea></div>
     </div>
 
     <div class="btn-row">
@@ -400,22 +414,24 @@ function toRow(p){
     url:p.url||'',category:p.category||'',tags:p.tags||[],status:p.status||'unread',
     memo:p.memo||'',ai_summary:p.aiSummary||'',ai_keywords:p.aiKeywords||'',created:p.created,
     subjects:p.subjects||'',protocol:p.protocol||'',outcomes:p.outcomes||'',
-    statistics:p.statistics||'',discussion:p.discussion||'',quick_note:p.quick_note||''};
+    statistics:p.statistics||'',discussion:p.discussion||'',quick_note:p.quick_note||'',prior_research:p.prior_research||''};
 }
 function fromRow(r){
   return {id:r.id,title:r.title,author:r.author,venue:r.venue,year:r.year,url:r.url,
     category:r.category,tags:r.tags||[],status:r.status,memo:r.memo||'',
     aiSummary:r.ai_summary||'',aiKeywords:r.ai_keywords||'',created:r.created,
     subjects:r.subjects||'',protocol:r.protocol||'',outcomes:r.outcomes||'',
-    statistics:r.statistics||'',discussion:r.discussion||'',quick_note:r.quick_note||''};
+    statistics:r.statistics||'',discussion:r.discussion||'',quick_note:r.quick_note||'',prior_research:r.prior_research||''};
 }
 
 let papers=[],selId=null,editId=null,activeTag=null,apiKey='';
+let tagColors={};
 let currentPdfBase64=null;
 
 async function launch(){
   document.getElementById('setup-screen').style.display='none';
   document.getElementById('app-screen').classList.add('active');
+  await loadTagColors();
   await load();renderAll();
 }
 async function load(){
@@ -441,6 +457,26 @@ async function save(p){
   try{await sbFetch(SB_TABLE,{method:'POST',headers:{'Prefer':'resolution=merge-duplicates'},body:JSON.stringify(toRow(p))});}
   catch(e){console.error('save error',e);}
 }
+async function loadTagColors(){
+  try{
+    const rows=await sbFetch('tag_colors?limit=1000');
+    tagColors={};
+    (rows||[]).forEach(r=>{tagColors[r.tag]=r.color;});
+  }catch(e){console.error('tagColors load error',e);}
+}
+async function saveTagColor(tag,color){
+  try{
+    tagColors[tag]=color;
+    await sbFetch('tag_colors',{method:'POST',headers:{'Prefer':'resolution=merge-duplicates'},body:JSON.stringify({tag,color})});
+    renderAll();
+    if(document.getElementById('page-tags').classList.contains('active'))renderTagManager();
+  }catch(e){console.error('saveTagColor error',e);}
+}
+function getTagStyle(tag){
+  const c=tagColors[tag];
+  if(!c)return '';
+  return `background:${c}22;color:${c};border-color:${c}66`;
+}
 async function deleteSb(id){
   try{await sbFetch(SB_TABLE+'?id=eq.'+id,{method:'DELETE'});}catch(e){console.error(e);}
 }
@@ -452,6 +488,7 @@ function showPage(name,btn){
   document.getElementById('page-'+name).classList.add('active');btn.classList.add('active');
   if(name==='dash')renderDash();
   if(name==='matrix')renderMatrix();
+  if(name==='tags')renderTagManager();
 }
 
 function getFiltered(){
@@ -469,6 +506,31 @@ function getFiltered(){
   return list.sort((a,b)=>sort==='date-asc'?a.created-b.created:sort==='date-desc'?b.created-a.created:sort==='title'?a.title.localeCompare(b.title,'ja'):({unread:0,reading:1,done:2}[a.status]-{unread:0,reading:1,done:2}[b.status]));
 }
 function renderAll(){renderStats();renderFilters();renderList();}
+function renderTagManager(){
+  const allTags=[...new Set(papers.flatMap(p=>p.tags||[]))].sort();
+  const el=document.getElementById('tag-mgr-body');
+  document.getElementById('tag-mgr-count').textContent=allTags.length+' 件のタグ';
+  const PALETTE=['#6ee7b7','#60a5fa','#a78bfa','#fbbf24','#fb923c','#f87171','#34d399','#38bdf8','#e879f9','#facc15','#4ade80','#f472b6','#94a3b8','#c084fc','#fb7185'];
+  if(!allTags.length){el.innerHTML='<div style="color:var(--text3);font-size:13px;padding:20px">論文を登録するとタグが表示されます</div>';return;}
+  el.innerHTML=allTags.map(tag=>{
+    const cnt=papers.filter(p=>(p.tags||[]).includes(tag)).length;
+    const cur=tagColors[tag]||'';
+    const swatchStyle=cur?`background:${cur};border-color:${cur}`:'background:var(--bg4);border-color:var(--border)';
+    return `<div class="tag-color-card">
+      <div class="color-picker-wrap">
+        <input type="color" value="${cur||'#6ee7b7'}" title="色を選択" style="width:28px;height:28px;border-radius:6px;cursor:pointer;border:none;padding:2px;background:var(--bg3)"
+          onchange="saveTagColor('${tag.replace(/'/g,"\'")}',this.value)">
+      </div>
+      <div>
+        <div class="tag-color-name">${esc(tag)}</div>
+        <div class="tag-color-count">${cnt} 件の論文</div>
+      </div>
+      <div style="display:flex;gap:3px;flex-wrap:wrap;max-width:80px">
+        ${PALETTE.slice(0,5).map(c=>`<div style="width:14px;height:14px;border-radius:3px;background:${c};cursor:pointer" onclick="saveTagColor('${tag.replace(/'/g,"\'")}','${c}')"></div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
 function renderMatrix(){
   const cats=[...new Set(papers.map(p=>p.category).filter(Boolean))].sort();
   const mc=document.getElementById('matrix-cat-filter');
@@ -510,6 +572,7 @@ const ALL_COLS=[
   {key:'statistics',label:'統計解析',color:'var(--yellow)'},
   {key:'discussion',label:'考察・限界',color:'var(--orange)'},
   {key:'quick_note',label:'一言メモ',color:'var(--text2)'},
+  {key:'prior_research',label:'先行研究としての活用メモ',color:'var(--accent)',full:true},
 ];
 function renderMatrixTable(list,sl,sc,colF){
   const cols=colF==='all'?ALL_COLS:ALL_COLS.filter(c=>c.key===colF);
@@ -538,7 +601,7 @@ function renderStats(){
 function renderFilters(){
   const cs=document.getElementById('filter-cat'),cv=cs.value;
   cs.innerHTML='<option value="">すべて</option>'+[...new Set(papers.map(p=>p.category).filter(Boolean))].sort().map(c=>`<option value="${esc(c)}"${c===cv?' selected':''}>${esc(c)}</option>`).join('');
-  document.getElementById('tag-cloud').innerHTML=[...new Set(papers.flatMap(p=>p.tags||[]))].sort().map(t=>`<button class="tag-btn${t===activeTag?' active':''}" onclick="toggleTag('${t.replace(/'/g,"\\'")}')">${esc(t)}</button>`).join('');
+  document.getElementById('tag-cloud').innerHTML=[...new Set(papers.flatMap(p=>p.tags||[]))].sort().map(t=>`<button class="tag-btn${t===activeTag?' active':''}" style="${t!==activeTag&&tagColors[t]?`color:${tagColors[t]};border-color:${tagColors[t]}66;background:${tagColors[t]}18`:''}" onclick="toggleTag('${t.replace(/'/g,"\\'")}')">${esc(t)}</button>`).join('');
 }
 function toggleTag(t){activeTag=activeTag===t?null:t;renderAll();}
 function renderList(){
@@ -547,7 +610,7 @@ function renderList(){
   el.innerHTML=list.map(p=>{
     const sc={unread:'s-unread',reading:'s-reading',done:'s-done'}[p.status];
     const sl={unread:'未読',reading:'読書中',done:'読了'}[p.status];
-    const tags=(p.tags||[]).map(t=>`<span class="tg">${esc(t)}</span>`).join('');
+    const tags=(p.tags||[]).map(t=>`<span class="tg" style="${getTagStyle(t)}">${esc(t)}</span>`).join('');
     return `<div class="pc${p.id===selId?' sel':''}" onclick="openDetail(${p.id})">
       <div class="ph"><div class="pt">${esc(p.title)}</div><span class="sb ${sc}">${sl}</span></div>
       <div class="pm">${esc([p.author,p.venue,p.year].filter(Boolean).join(' · '))}</div>
@@ -760,10 +823,11 @@ function openEditModal(p){
   document.getElementById('f-subjects').value=p.subjects||'';document.getElementById('f-protocol').value=p.protocol||'';
   document.getElementById('f-outcomes').value=p.outcomes||'';document.getElementById('f-statistics').value=p.statistics||'';
   document.getElementById('f-discussion').value=p.discussion||'';
+  document.getElementById('f-prior_research').value=p.prior_research||'';
   document.getElementById('add-overlay').classList.add('open');
 }
 function clearForm(){
-  ['f-title','f-author','f-venue','f-year','f-url','f-category','f-tags','f-quick_note','f-subjects','f-protocol','f-outcomes','f-statistics','f-discussion'].forEach(id=>document.getElementById(id).value='');
+  ['f-title','f-author','f-venue','f-year','f-url','f-category','f-tags','f-quick_note','f-subjects','f-protocol','f-outcomes','f-statistics','f-discussion','f-prior_research'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('f-status').value='unread';
   document.getElementById('f-lookup-input').value='';
   document.getElementById('lookup-status').style.display='none';
@@ -776,10 +840,10 @@ async function savePaper(){
     paper=papers.find(x=>x.id===editId);
     if(paper){
       paper.title=title;paper.author=document.getElementById('f-author').value.trim();paper.venue=document.getElementById('f-venue').value.trim();paper.year=document.getElementById('f-year').value.trim();paper.url=document.getElementById('f-url').value.trim();paper.category=document.getElementById('f-category').value.trim();paper.tags=tags;paper.status=document.getElementById('f-status').value;paper.quick_note=document.getElementById('f-quick_note').value.trim();
-      paper.subjects=document.getElementById('f-subjects').value.trim();paper.protocol=document.getElementById('f-protocol').value.trim();paper.outcomes=document.getElementById('f-outcomes').value.trim();paper.statistics=document.getElementById('f-statistics').value.trim();paper.discussion=document.getElementById('f-discussion').value.trim();
+      paper.subjects=document.getElementById('f-subjects').value.trim();paper.protocol=document.getElementById('f-protocol').value.trim();paper.outcomes=document.getElementById('f-outcomes').value.trim();paper.statistics=document.getElementById('f-statistics').value.trim();paper.discussion=document.getElementById('f-discussion').value.trim();paper.prior_research=document.getElementById('f-prior_research').value.trim();
     }
   }else{
-    paper={id:Date.now(),title,author:document.getElementById('f-author').value.trim(),venue:document.getElementById('f-venue').value.trim(),year:document.getElementById('f-year').value.trim(),url:document.getElementById('f-url').value.trim(),category:document.getElementById('f-category').value.trim(),tags,status:document.getElementById('f-status').value,quick_note:document.getElementById('f-quick_note').value.trim(),subjects:document.getElementById('f-subjects').value.trim(),protocol:document.getElementById('f-protocol').value.trim(),outcomes:document.getElementById('f-outcomes').value.trim(),statistics:document.getElementById('f-statistics').value.trim(),discussion:document.getElementById('f-discussion').value.trim(),memo:'',created:Date.now(),aiSummary:'',aiKeywords:''};
+    paper={id:Date.now(),title,author:document.getElementById('f-author').value.trim(),venue:document.getElementById('f-venue').value.trim(),year:document.getElementById('f-year').value.trim(),url:document.getElementById('f-url').value.trim(),category:document.getElementById('f-category').value.trim(),tags,status:document.getElementById('f-status').value,quick_note:document.getElementById('f-quick_note').value.trim(),subjects:document.getElementById('f-subjects').value.trim(),protocol:document.getElementById('f-protocol').value.trim(),outcomes:document.getElementById('f-outcomes').value.trim(),statistics:document.getElementById('f-statistics').value.trim(),discussion:document.getElementById('f-discussion').value.trim(),prior_research:document.getElementById('f-prior_research').value.trim(),memo:'',created:Date.now(),aiSummary:'',aiKeywords:''};
   }
   await save(paper);
   if(!editId)papers.unshift(paper);
