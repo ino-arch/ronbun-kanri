@@ -438,14 +438,6 @@ async function load(){
   try{
     const rows=await sbFetch(SB_TABLE+'?order=created.desc&limit=1000');
     papers=(rows||[]).map(fromRow);
-    if(!papers.length){
-      const s=[
-        {id:Date.now()-3000,title:'Effect of Resistance Training Volume on Muscle Hypertrophy',author:'Schoenfeld BJ et al.',venue:'J Strength Cond Res',year:'2019',url:'',category:'筋力トレーニング',tags:['RCT','筋肥大','ボリューム'],status:'done',memo:'',aiSummary:'',aiKeywords:'',created:Date.now()-864e5*60,subjects:'健常男性18名（24±3歳）、トレーニング経験2年以上',protocol:'週3回16週間、低ボリューム群(5セット/週) vs 高ボリューム群(15セット/週)\n種目：スクワット、レッグプレスなど',outcomes:'筋断面積: 高ボリューム群 +13.3%, 低ボリューム群 +6.8%（p<0.05）\n筋力（1RM）: 両群で有意な向上',statistics:'2×2 反復測定ANOVA\nCohen\'s d で効果量算出\n有意水準 p<0.05',discussion:'ボリュームと筋肥大に用量反応関係あり\n限界: サンプルサイズが小さい\n実用: 週10セット以上を目安に',quick_note:'ボリュームが多いほど筋肥大は大きい。用量反応関係の基礎論文。'},
-        {id:Date.now()-2000,title:'High-Intensity Interval Training for Cardiovascular Health',author:'Gibala MJ et al.',venue:'Sports Med',year:'2022',url:'',category:'持久力トレーニング',tags:['HIIT','心肺機能','RCT'],status:'reading',memo:'',aiSummary:'',aiKeywords:'',created:Date.now()-864e5*30,subjects:'',protocol:'',outcomes:'',statistics:'',discussion:'',quick_note:'HIITの心肺機能改善効果をレビュー'},
-      ];
-      for(const x of s)await sbFetch(SB_TABLE,{method:'POST',body:JSON.stringify(toRow(x))});
-      papers=s;
-    }
   }catch(e){
     document.getElementById('setup-error').style.display='block';
     document.getElementById('setup-error').textContent='接続エラー: '+e.message;
