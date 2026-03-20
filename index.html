@@ -430,9 +430,16 @@ const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZ
 const SB_TABLE='papers';
 
 async function sbFetch(path,opts={}){
+  const {headers:extraHeaders={}, ...restOpts}=opts;
   const res=await fetch(SB_URL+'/rest/v1/'+path,{
-    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation',...(opts.headers||{})},
-    ...opts
+    ...restOpts,
+    headers:{
+      'apikey':SB_KEY,
+      'Authorization':'Bearer '+SB_KEY,
+      'Content-Type':'application/json',
+      'Prefer':'return=representation',
+      ...extraHeaders
+    }
   });
   if(!res.ok){const e=await res.text();throw new Error(e);}
   const t=await res.text();return t?JSON.parse(t):null;
@@ -469,10 +476,12 @@ async function load(){
     const rows=await sbFetch(SB_TABLE+'?order=created.desc&limit=1000');
     papers=(rows||[]).map(fromRow);
   }catch(e){
-    document.getElementById('setup-error').style.display='block';
-    document.getElementById('setup-error').textContent='接続エラー: '+e.message;
-    document.getElementById('setup-screen').style.display='flex';
-    document.getElementById('app-screen').classList.remove('active');
+    console.error('load error:',e);
+    // show error in nav but don't redirect - keep showing any cached data
+    const sl=document.querySelector('.sync-label');
+    if(sl){sl.textContent='接続エラー';sl.style.color='var(--red)';}
+    const sd=document.querySelector('.sync-dot');
+    if(sd){sd.style.background='var(--red)';}
   }
 }
 async function save(p){
