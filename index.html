@@ -362,23 +362,29 @@ textarea.note-input{background:var(--bg4);border-color:var(--border);font-size:1
     <!-- RICH MEMO -->
     <div class="sec-head" style="display:flex;align-items:center;justify-content:space-between">
       <span>メモ</span>
-      <button class="btn" id="memo-edit-btn" onclick="toggleMemoEdit()" style="font-size:11px;padding:2px 10px">編集</button>
+      <div style="display:flex;gap:6px">
+        <button class="btn" onclick="openMemoFs()" style="font-size:11px;padding:2px 10px;color:var(--accent);border-color:var(--accent)">⤢ 別窓で編集</button>
+        <button class="btn" id="memo-edit-btn" onclick="toggleMemoEdit()" style="font-size:11px;padding:2px 10px">編集</button>
+      </div>
     </div>
     <div id="d-rich-memo-view" style="min-height:40px;font-size:13px;line-height:1.8;color:var(--text2)"></div>
     <div id="d-rich-memo-editor" style="display:none">
       <div class="rich-toolbar">
-        <button onclick="execCmd('bold')" title="太字"><strong>B</strong></button>
-        <button onclick="execCmd('italic')" title="斜体"><em>I</em></button>
-        <button onclick="execCmd('underline')" title="下線"><u>U</u></button>
-        <button onclick="insertHeading('h2')" title="見出し">H1</button>
-        <button onclick="insertHeading('h3')" title="小見出し">H2</button>
-        <button onclick="execCmd('insertUnorderedList')" title="リスト">• List</button>
-        <button onclick="execCmd('removeFormat')" title="書式クリア">✕</button>
+        <button onclick="execCmd('bold')" class="rt-btn"><span class="rt-icon"><strong>B</strong></span><span class="rt-lbl">太字</span></button>
+        <button onclick="execCmd('italic')" class="rt-btn"><span class="rt-icon"><em>I</em></span><span class="rt-lbl">斜体</span></button>
+        <button onclick="execCmd('underline')" class="rt-btn"><span class="rt-icon"><u>U</u></span><span class="rt-lbl">下線</span></button>
+        <div class="rt-divider"></div>
+        <button onclick="insertHeading('h2')" class="rt-btn"><span class="rt-icon">H1</span><span class="rt-lbl">見出し</span></button>
+        <button onclick="insertHeading('h3')" class="rt-btn"><span class="rt-icon">H2</span><span class="rt-lbl">小見出し</span></button>
+        <button onclick="execCmd('insertUnorderedList')" class="rt-btn"><span class="rt-icon">•—</span><span class="rt-lbl">リスト</span></button>
+        <div class="rt-divider"></div>
+        <button onclick="execCmd('removeFormat')" class="rt-btn"><span class="rt-icon">✕</span><span class="rt-lbl">書式解除</span></button>
       </div>
-      <div id="rich-editor" class="rich-editor" contenteditable="true"></div>
-      <div style="display:flex;gap:8px;margin-top:8px;justify-content:flex-end">
+      <div id="rich-editor" class="rich-editor" contenteditable="true" placeholder="ここにメモを入力..."></div>
+      <div style="display:flex;gap:8px;margin-top:10px;justify-content:flex-end;align-items:center">
+        <span style="font-size:11px;color:var(--text3)">Ctrl+B 太字 / Ctrl+I 斜体</span>
         <button class="btn" onclick="cancelMemoEdit()">キャンセル</button>
-        <button class="btn" onclick="saveMemo()" style="background:var(--accent);color:#0a1a14;border-color:var(--accent);font-weight:500">保存</button>
+        <button class="btn" onclick="saveMemo()" style="background:var(--accent);color:#0a1a14;border-color:var(--accent);font-weight:500;padding:6px 16px">保存</button>
       </div>
     </div>
 
@@ -958,6 +964,41 @@ async function saveMemo(){
   cancelMemoEdit();
 }
 function execCmd(cmd){document.execCommand(cmd,false,null);}
+function execCmdFs(cmd){document.getElementById('rich-editor-fs').focus();document.execCommand(cmd,false,null);}
+function insertHeadingFs(tag){
+  const ed=document.getElementById('rich-editor-fs');ed.focus();
+  const sel=window.getSelection();if(!sel.rangeCount)return;
+  const range=sel.getRangeAt(0);
+  const el=document.createElement(tag);el.textContent=sel.toString()||'見出し';
+  range.deleteContents();range.insertNode(el);
+  range.setStartAfter(el);range.collapse(true);sel.removeAllRanges();sel.addRange(range);
+}
+function openMemoFs(){
+  const p=papers.find(x=>x.id===selId);if(!p)return;
+  const fs=document.getElementById('memo-fullscreen');
+  document.getElementById('memo-fs-title').textContent=p.title;
+  document.getElementById('rich-editor-fs').innerHTML=p.rich_memo||'';
+  document.getElementById('memo-fs-saved').style.display='none';
+  fs.style.display='flex';
+  document.getElementById('rich-editor-fs').focus();
+}
+function cancelMemoFs(){
+  document.getElementById('memo-fullscreen').style.display='none';
+}
+async function saveMemoFs(){
+  const p=papers.find(x=>x.id===selId);if(!p)return;
+  const html=document.getElementById('rich-editor-fs').innerHTML;
+  p.rich_memo=html;await save(p);
+  document.getElementById('d-rich-memo-view').innerHTML=html||'<span style="color:var(--text3);font-style:italic">メモなし</span>';
+  document.getElementById('memo-fs-saved').style.display='inline';
+  setTimeout(()=>{document.getElementById('memo-fullscreen').style.display='none';},600);
+}
+// Ctrl+S to save in fullscreen
+document.addEventListener('keydown',e=>{
+  if(e.key==='s'&&(e.ctrlKey||e.metaKey)&&document.getElementById('memo-fullscreen').style.display==='flex'){
+    e.preventDefault();saveMemoFs();
+  }
+});
 function insertHeading(tag){
   const sel=window.getSelection();
   if(!sel.rangeCount)return;
@@ -1119,5 +1160,30 @@ function donutPaths(done,reading,unread){
 
 launch();
 </script>
+
+<!-- FULLSCREEN MEMO MODAL -->
+<div id="memo-fullscreen" style="display:none;position:fixed;inset:0;z-index:500;background:var(--bg0);flex-direction:column">
+  <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--bg1);flex-shrink:0">
+    <div style="font-size:13px;font-weight:500;color:var(--text2);flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis" id="memo-fs-title"></div>
+    <span style="font-size:11px;color:var(--text3)">Ctrl+B 太字 / Ctrl+I 斜体 / Ctrl+S 保存</span>
+    <button class="btn" onclick="cancelMemoFs()" style="font-size:12px">キャンセル</button>
+    <button class="btn" onclick="saveMemoFs()" style="background:var(--accent);color:#0a1a14;border-color:var(--accent);font-weight:500;font-size:12px">保存して閉じる</button>
+  </div>
+  <div class="rich-toolbar" style="border-radius:0;border-left:none;border-right:none;border-top:none">
+    <button onclick="execCmdFs('bold')" class="rt-btn"><span class="rt-icon"><strong>B</strong></span><span class="rt-lbl">太字</span></button>
+    <button onclick="execCmdFs('italic')" class="rt-btn"><span class="rt-icon"><em>I</em></span><span class="rt-lbl">斜体</span></button>
+    <button onclick="execCmdFs('underline')" class="rt-btn"><span class="rt-icon"><u>U</u></span><span class="rt-lbl">下線</span></button>
+    <div class="rt-divider"></div>
+    <button onclick="insertHeadingFs('h2')" class="rt-btn"><span class="rt-icon">H1</span><span class="rt-lbl">見出し</span></button>
+    <button onclick="insertHeadingFs('h3')" class="rt-btn"><span class="rt-icon">H2</span><span class="rt-lbl">小見出し</span></button>
+    <button onclick="execCmdFs('insertUnorderedList')" class="rt-btn"><span class="rt-icon">•—</span><span class="rt-lbl">リスト</span></button>
+    <div class="rt-divider"></div>
+    <button onclick="execCmdFs('removeFormat')" class="rt-btn"><span class="rt-icon">✕</span><span class="rt-lbl">書式解除</span></button>
+    <div style="flex:1"></div>
+    <span id="memo-fs-saved" style="font-size:11px;color:var(--accent);display:none">✓ 保存済み</span>
+  </div>
+  <div id="rich-editor-fs" contenteditable="true" style="flex:1;overflow-y:auto;padding:32px 10%;font-size:14px;line-height:2;color:var(--text1);outline:none;background:var(--bg0);max-width:100%"></div>
+</div>
+
 </body>
 </html>
