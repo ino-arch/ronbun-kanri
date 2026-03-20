@@ -254,6 +254,7 @@ textarea.note-input{background:var(--bg4);border-color:var(--border);font-size:1
       <select id="matrix-status-filter" onchange="renderMatrix()" style="width:120px;background:var(--bg2)"><option value="">すべての状態</option><option value="unread">未読</option><option value="reading">読書中</option><option value="done">読了</option></select>
       <select id="matrix-col-filter" onchange="renderMatrix()" style="width:150px;background:var(--bg2)">
         <option value="all">全項目表示</option>
+        <option value="objective">目的のみ</option>
         <option value="subjects">対象者のみ</option>
         <option value="protocol">プロトコルのみ</option>
         <option value="outcomes">結果のみ</option>
@@ -313,6 +314,7 @@ textarea.note-input{background:var(--bg4);border-color:var(--border);font-size:1
 
     <div style="font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3);margin:14px 0 10px;padding-top:14px;border-top:1px solid var(--border)">研究詳細</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="fr" style="grid-column:1/-1"><label>目的・研究課題</label><textarea id="f-objective" placeholder="例: 高強度インターバルトレーニングが最大酸素摂取量に与える影響を検討する&#10;例: レジスタンストレーニングの頻度と筋肥大の関係を明らかにする"></textarea></div>
       <div class="fr"><label>対象者・参加者</label><textarea id="f-subjects" placeholder="例: 健常男性20名（22±2歳）&#10;トレーニング経験2年以上&#10;除外基準: 骨格筋疾患など"></textarea></div>
       <div class="fr"><label>トレーニング・介入プロトコル</label><textarea id="f-protocol" placeholder="例: 週3回12週間&#10;3セット×8-12回&#10;強度: 1RM 70-80%&#10;種目: スクワット、レッグプレス..."></textarea></div>
       <div class="fr"><label>主な結果・アウトカム</label><textarea id="f-outcomes" placeholder="例: 筋断面積 +12%（p&lt;0.05）&#10;1RM +18%&#10;筋力とタンパク摂取量に有意な相関（r=0.72）"></textarea></div>
@@ -456,14 +458,14 @@ function toRow(p){
     url:p.url||'',category:p.category||'',tags:p.tags||[],status:p.status||'unread',
     memo:p.memo||'',ai_summary:p.aiSummary||'',ai_keywords:p.aiKeywords||'',created:p.created,
     subjects:p.subjects||'',protocol:p.protocol||'',outcomes:p.outcomes||'',
-    statistics:p.statistics||'',discussion:p.discussion||'',quick_note:p.quick_note||'',prior_research:p.prior_research||'',rich_memo:p.rich_memo||'',starred:p.starred||false};
+    statistics:p.statistics||'',discussion:p.discussion||'',quick_note:p.quick_note||'',prior_research:p.prior_research||'',rich_memo:p.rich_memo||'',starred:p.starred||false,objective:p.objective||''};
 }
 function fromRow(r){
   return {id:r.id,title:r.title,author:r.author,venue:r.venue,year:r.year,url:r.url,
     category:r.category,tags:r.tags||[],status:r.status,memo:r.memo||'',
     aiSummary:r.ai_summary||'',aiKeywords:r.ai_keywords||'',created:r.created,
     subjects:r.subjects||'',protocol:r.protocol||'',outcomes:r.outcomes||'',
-    statistics:r.statistics||'',discussion:r.discussion||'',quick_note:r.quick_note||'',prior_research:r.prior_research||'',rich_memo:r.rich_memo||'',starred:r.starred||false};
+    statistics:r.statistics||'',discussion:r.discussion||'',quick_note:r.quick_note||'',prior_research:r.prior_research||'',rich_memo:r.rich_memo||'',starred:r.starred||false,objective:r.objective||''};
 }
 
 let papers=[],selId=null,editId=null,activeTag=null,apiKey='';
@@ -728,6 +730,7 @@ function renderMatrix(){
   }
 }
 const ALL_COLS=[
+  {key:'objective',label:'目的・研究課題',color:'var(--purple)'},
   {key:'subjects',label:'対象者・参加者',color:'var(--blue)'},
   {key:'protocol',label:'介入プロトコル',color:'var(--purple)'},
   {key:'outcomes',label:'主な結果',color:'var(--accent)'},
@@ -739,7 +742,7 @@ const ALL_COLS=[
 function renderMatrixTable(list,sl,sc,colF){
   const cols=colF==='all'?ALL_COLS:ALL_COLS.filter(c=>c.key===colF);
   const minW=(200+cols.length*220)+'px';
-  const thead='<thead><tr><th class="col-title" style="width:200px">論文</th>'+
+  const thead='<thead><tr><th class="col-title" style="width:200px">論文</th><th class="col-data" style="width:200px"><span style="color:var(--purple)">目的・研究課題</span></th>'+
     cols.map(c=>'<th class="col-data" style="width:220px"><span style="color:'+c.color+'">'+c.label+'</span></th>').join('')+
     '</tr></thead>';
   const tbody='<tbody>'+list.map(p=>{
@@ -787,6 +790,7 @@ function renderList(){
 
 /* NOTE BLOCKS CONFIG */
 const NOTE_BLOCKS=[
+  {key:'objective',label:'目的・研究課題',color:'var(--purple)',full:true},
   {key:'subjects',label:'対象者・参加者',color:'var(--blue)'},
   {key:'protocol',label:'介入プロトコル',color:'var(--purple)'},
   {key:'outcomes',label:'主な結果・アウトカム',color:'var(--accent)'},
@@ -1081,10 +1085,11 @@ function openEditModal(p){
   document.getElementById('f-outcomes').value=p.outcomes||'';document.getElementById('f-statistics').value=p.statistics||'';
   document.getElementById('f-discussion').value=p.discussion||'';
   document.getElementById('f-prior_research').value=p.prior_research||'';
+  document.getElementById('f-objective').value=p.objective||'';
   document.getElementById('add-overlay').classList.add('open');
 }
 function clearForm(){
-  ['f-title','f-author','f-venue','f-year','f-url','f-category','f-tags','f-quick_note','f-subjects','f-protocol','f-outcomes','f-statistics','f-discussion','f-prior_research'].forEach(id=>document.getElementById(id).value='');
+  ['f-title','f-author','f-venue','f-year','f-url','f-category','f-tags','f-quick_note','f-objective','f-subjects','f-protocol','f-outcomes','f-statistics','f-discussion','f-prior_research'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('f-status').value='unread';
   document.getElementById('f-lookup-input').value='';
   document.getElementById('lookup-status').style.display='none';
@@ -1097,10 +1102,10 @@ async function savePaper(){
     paper=papers.find(x=>x.id===editId);
     if(paper){
       paper.title=title;paper.author=document.getElementById('f-author').value.trim();paper.venue=document.getElementById('f-venue').value.trim();paper.year=document.getElementById('f-year').value.trim();paper.url=document.getElementById('f-url').value.trim();paper.category=document.getElementById('f-category').value.trim();paper.tags=tags;paper.status=document.getElementById('f-status').value;paper.quick_note=document.getElementById('f-quick_note').value.trim();
-      paper.subjects=document.getElementById('f-subjects').value.trim();paper.protocol=document.getElementById('f-protocol').value.trim();paper.outcomes=document.getElementById('f-outcomes').value.trim();paper.statistics=document.getElementById('f-statistics').value.trim();paper.discussion=document.getElementById('f-discussion').value.trim();paper.prior_research=document.getElementById('f-prior_research').value.trim();
+      paper.subjects=document.getElementById('f-subjects').value.trim();paper.protocol=document.getElementById('f-protocol').value.trim();paper.outcomes=document.getElementById('f-outcomes').value.trim();paper.statistics=document.getElementById('f-statistics').value.trim();paper.discussion=document.getElementById('f-discussion').value.trim();paper.prior_research=document.getElementById('f-prior_research').value.trim();paper.objective=document.getElementById('f-objective').value.trim();
     }
   }else{
-    paper={id:Date.now(),title,author:document.getElementById('f-author').value.trim(),venue:document.getElementById('f-venue').value.trim(),year:document.getElementById('f-year').value.trim(),url:document.getElementById('f-url').value.trim(),category:document.getElementById('f-category').value.trim(),tags,status:document.getElementById('f-status').value,quick_note:document.getElementById('f-quick_note').value.trim(),subjects:document.getElementById('f-subjects').value.trim(),protocol:document.getElementById('f-protocol').value.trim(),outcomes:document.getElementById('f-outcomes').value.trim(),statistics:document.getElementById('f-statistics').value.trim(),discussion:document.getElementById('f-discussion').value.trim(),prior_research:document.getElementById('f-prior_research').value.trim(),memo:'',created:Date.now(),aiSummary:'',aiKeywords:''};
+    paper={id:Date.now(),title,author:document.getElementById('f-author').value.trim(),venue:document.getElementById('f-venue').value.trim(),year:document.getElementById('f-year').value.trim(),url:document.getElementById('f-url').value.trim(),category:document.getElementById('f-category').value.trim(),tags,status:document.getElementById('f-status').value,quick_note:document.getElementById('f-quick_note').value.trim(),subjects:document.getElementById('f-subjects').value.trim(),protocol:document.getElementById('f-protocol').value.trim(),outcomes:document.getElementById('f-outcomes').value.trim(),statistics:document.getElementById('f-statistics').value.trim(),discussion:document.getElementById('f-discussion').value.trim(),prior_research:document.getElementById('f-prior_research').value.trim(),objective:document.getElementById('f-objective').value.trim(),memo:'',created:Date.now(),aiSummary:'',aiKeywords:''};
   }
   await save(paper);
   if(!editId)papers.unshift(paper);
