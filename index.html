@@ -216,15 +216,14 @@ textarea.note-input{background:var(--bg4);border-color:var(--border);font-size:1
   <div class="page active" id="page-list">
     <div class="list-body">
       <div class="sidebar">
-        <div class="stat-row" id="stats-sb"></div>
-        <div><div class="fl">状態</div><select id="filter-status" onchange="renderAll()"><option value="">すべて</option><option value="unread">未読</option><option value="reading">読書中</option><option value="done">読了</option></select></div>
-        <div><div class="fl">カテゴリ</div><select id="filter-cat" onchange="renderAll()"><option value="">すべて</option></select></div>
-        <div><div class="fl">タグ</div><div class="tag-cloud" id="tag-cloud"></div></div>
+        <div id="sidebar-inner"></div>
       </div>
       <div class="main-col">
         <div class="toolbar">
           <div class="sw"><span class="si">⌕</span><input type="text" id="search-input" placeholder="タイトル・著者・メモを検索..." oninput="renderAll()"></div>
-          <select id="sort-sel" onchange="renderAll()" style="width:100px"><option value="date-desc">新しい順</option><option value="date-asc">古い順</option><option value="title">タイトル順</option><option value="status">状態順</option></select>
+          <select id="filter-status" onchange="renderAll()" style="width:90px;background:var(--bg2)"><option value="">すべての状態</option><option value="unread">未読</option><option value="reading">読書中</option><option value="done">読了</option></select>
+          <select id="filter-cat" onchange="renderAll()" style="width:120px;background:var(--bg2)"><option value="">すべてのカテゴリ</option></select>
+          <select id="sort-sel" onchange="renderAll()" style="width:90px"><option value="date-desc">新しい順</option><option value="date-asc">古い順</option><option value="title">タイトル順</option><option value="status">状態順</option></select>
         </div>
         <div class="paper-list" id="paper-list"></div>
       </div>
@@ -335,6 +334,7 @@ textarea.note-input{background:var(--bg4);border-color:var(--border);font-size:1
   <div class="modal" style="max-width:760px">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:8px">
       <div style="font-size:16px;font-weight:600;line-height:1.4;flex:1;letter-spacing:-0.3px" id="d-title"></div>
+      <button id="d-star-btn" onclick="toggleStarDetail()" style="background:none;border:none;font-size:20px;cursor:pointer;padding:0 6px;color:var(--text3)">☆</button>
       <button class="btn" onclick="closeDetail()" style="flex-shrink:0;padding:3px 10px">✕</button>
     </div>
     <div style="font-size:11px;color:var(--text3);margin-bottom:10px" id="d-meta"></div>
@@ -350,6 +350,35 @@ textarea.note-input{background:var(--bg4);border-color:var(--border);font-size:1
         <span style="font-size:11px;color:var(--orange);flex:1;word-break:break-all" id="d-pdf-url-text"></span>
         <button class="btn" onclick="openPdfViewer()" style="font-size:11px;padding:3px 10px;color:var(--orange);border-color:var(--orange-dim)">アプリ内で開く</button>
         <a id="d-pdf-link" href="#" target="_blank" class="btn" style="font-size:11px;padding:3px 10px;text-decoration:none">↗ 別タブ</a>
+      </div>
+    </div>
+
+    <!-- COLLECTIONS -->
+    <div class="sec-head" style="display:flex;align-items:center;justify-content:space-between">
+      <span>コレクション</span>
+    </div>
+    <div id="d-collections" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px"></div>
+
+    <!-- RICH MEMO -->
+    <div class="sec-head" style="display:flex;align-items:center;justify-content:space-between">
+      <span>メモ</span>
+      <button class="btn" id="memo-edit-btn" onclick="toggleMemoEdit()" style="font-size:11px;padding:2px 10px">編集</button>
+    </div>
+    <div id="d-rich-memo-view" style="min-height:40px;font-size:13px;line-height:1.8;color:var(--text2)"></div>
+    <div id="d-rich-memo-editor" style="display:none">
+      <div class="rich-toolbar">
+        <button onclick="execCmd('bold')" title="太字"><strong>B</strong></button>
+        <button onclick="execCmd('italic')" title="斜体"><em>I</em></button>
+        <button onclick="execCmd('underline')" title="下線"><u>U</u></button>
+        <button onclick="insertHeading('h2')" title="見出し">H1</button>
+        <button onclick="insertHeading('h3')" title="小見出し">H2</button>
+        <button onclick="execCmd('insertUnorderedList')" title="リスト">• List</button>
+        <button onclick="execCmd('removeFormat')" title="書式クリア">✕</button>
+      </div>
+      <div id="rich-editor" class="rich-editor" contenteditable="true"></div>
+      <div style="display:flex;gap:8px;margin-top:8px;justify-content:flex-end">
+        <button class="btn" onclick="cancelMemoEdit()">キャンセル</button>
+        <button class="btn" onclick="saveMemo()" style="background:var(--accent);color:#0a1a14;border-color:var(--accent);font-weight:500">保存</button>
       </div>
     </div>
 
@@ -414,24 +443,25 @@ function toRow(p){
     url:p.url||'',category:p.category||'',tags:p.tags||[],status:p.status||'unread',
     memo:p.memo||'',ai_summary:p.aiSummary||'',ai_keywords:p.aiKeywords||'',created:p.created,
     subjects:p.subjects||'',protocol:p.protocol||'',outcomes:p.outcomes||'',
-    statistics:p.statistics||'',discussion:p.discussion||'',quick_note:p.quick_note||'',prior_research:p.prior_research||''};
+    statistics:p.statistics||'',discussion:p.discussion||'',quick_note:p.quick_note||'',prior_research:p.prior_research||'',rich_memo:p.rich_memo||'',starred:p.starred||false};
 }
 function fromRow(r){
   return {id:r.id,title:r.title,author:r.author,venue:r.venue,year:r.year,url:r.url,
     category:r.category,tags:r.tags||[],status:r.status,memo:r.memo||'',
     aiSummary:r.ai_summary||'',aiKeywords:r.ai_keywords||'',created:r.created,
     subjects:r.subjects||'',protocol:r.protocol||'',outcomes:r.outcomes||'',
-    statistics:r.statistics||'',discussion:r.discussion||'',quick_note:r.quick_note||'',prior_research:r.prior_research||''};
+    statistics:r.statistics||'',discussion:r.discussion||'',quick_note:r.quick_note||'',prior_research:r.prior_research||'',rich_memo:r.rich_memo||'',starred:r.starred||false};
 }
 
 let papers=[],selId=null,editId=null,activeTag=null,apiKey='';
-let tagColors={};
+let tagColors={},collections=[],paperCollections={},activeCollection=null,smartFilter=null;
 let currentPdfBase64=null;
 
 async function launch(){
   document.getElementById('setup-screen').style.display='none';
   document.getElementById('app-screen').classList.add('active');
   await loadTagColors();
+  await loadCollections();
   await load();renderAll();
 }
 async function load(){
@@ -449,6 +479,127 @@ async function save(p){
   try{await sbFetch(SB_TABLE,{method:'POST',headers:{'Prefer':'resolution=merge-duplicates'},body:JSON.stringify(toRow(p))});}
   catch(e){console.error('save error',e);}
 }
+/* COLLECTIONS */
+async function loadCollections(){
+  try{
+    const cols=await sbFetch('collections?order=created.asc');
+    collections=(cols||[]);
+    const pcs=await sbFetch('paper_collections?limit=10000');
+    paperCollections={};
+    (pcs||[]).forEach(r=>{
+      if(!paperCollections[r.paper_id])paperCollections[r.paper_id]=[];
+      paperCollections[r.paper_id].push(r.collection_id);
+    });
+  }catch(e){console.error('loadCollections error',e);}
+}
+async function createCollection(name){
+  const id=Date.now();
+  const col={id,name,created:id};
+  try{await sbFetch('collections',{method:'POST',body:JSON.stringify(col)});collections.push(col);renderSidebar();}
+  catch(e){console.error(e);}
+}
+async function deleteCollection(id){
+  if(!confirm('このコレクションを削除しますか？'))return;
+  try{
+    await sbFetch('collections?id=eq.'+id,{method:'DELETE'});
+    collections=collections.filter(c=>c.id!==id);
+    Object.keys(paperCollections).forEach(pid=>{paperCollections[pid]=paperCollections[pid].filter(cid=>cid!==id);});
+    if(activeCollection===id){activeCollection=null;}
+    renderSidebar();renderAll();
+  }catch(e){console.error(e);}
+}
+async function togglePaperCollection(paperId,colId){
+  const ids=paperCollections[paperId]||[];
+  if(ids.includes(colId)){
+    await sbFetch('paper_collections?paper_id=eq.'+paperId+'&collection_id=eq.'+colId,{method:'DELETE'});
+    paperCollections[paperId]=ids.filter(x=>x!==colId);
+  }else{
+    await sbFetch('paper_collections',{method:'POST',body:JSON.stringify({paper_id:paperId,collection_id:colId})});
+    if(!paperCollections[paperId])paperCollections[paperId]=[];
+    paperCollections[paperId].push(colId);
+  }
+  renderAll();
+}
+async function toggleStar(id,e){
+  e.stopPropagation();
+  const p=papers.find(x=>x.id===id);if(!p)return;
+  p.starred=!p.starred;
+  await save(p);renderAll();
+}
+function renderSidebar(){
+  // スマートフィルター
+  const smartFilters=[
+    {id:'starred',label:'スター付き',icon:'★'},
+    {id:'recent',label:'最近追加',icon:'◎'},
+    {id:'unread',label:'未読',icon:'○'},
+  ];
+  const sfHtml=smartFilters.map(f=>`
+    <div class="sb-item${smartFilter===f.id?' active':''}" onclick="setSmartFilter('${f.id}')">
+      <span class="sb-item-icon" style="color:${f.id==='starred'?'var(--yellow)':f.id==='recent'?'var(--blue)':'var(--text3)'}">${f.icon}</span>
+      <span class="sb-item-label">${f.label}</span>
+      <span class="sb-item-count">${getSmartCount(f.id)}</span>
+    </div>`).join('');
+
+  // コレクション
+  const colHtml=collections.map(c=>{
+    const cnt=Object.values(paperCollections).filter(ids=>ids.includes(c.id)).length;
+    return `<div class="sb-item${activeCollection===c.id?' active':''}" onclick="setCollection(${c.id})">
+      <span class="sb-item-icon" style="color:var(--text3)">▶</span>
+      <span class="sb-item-label">${esc(c.name)}</span>
+      <span class="sb-item-count">${cnt}</span>
+      <button class="sb-del-btn" onclick="event.stopPropagation();deleteCollection(${c.id})">✕</button>
+    </div>`;
+  }).join('');
+
+  // タグ
+  const allTags=[...new Set(papers.flatMap(p=>p.tags||[]))].sort();
+  const tagHtml=allTags.map(t=>{
+    const cnt=papers.filter(p=>(p.tags||[]).includes(t)).length;
+    const col=tagColors[t];
+    return `<div class="sb-item${activeTag===t?' active':''}" onclick="toggleTag('${t.replace(/'/g,"\'")}')">
+      <span class="sb-item-icon"><span style="width:8px;height:8px;border-radius:50%;background:${col||'var(--text3)'};display:inline-block"></span></span>
+      <span class="sb-item-label">${esc(t)}</span>
+      <span class="sb-item-count">${cnt}</span>
+    </div>`;
+  }).join('');
+
+  const sidebarEl=document.getElementById('sidebar-inner');
+  if(sidebarEl)sidebarEl.innerHTML=`
+    <div class="sb-section">
+      <div class="sb-section-label">ライブラリ</div>
+      <div class="sb-item${!smartFilter&&!activeCollection&&!activeTag?' active':''}" onclick="clearFilters()">
+        <span class="sb-item-icon">≡</span>
+        <span class="sb-item-label">すべての論文</span>
+        <span class="sb-item-count">${papers.length}</span>
+      </div>
+      ${sfHtml}
+    </div>
+    <div class="sb-section">
+      <div class="sb-section-label" style="display:flex;align-items:center;justify-content:space-between">
+        <span>コレクション</span>
+        <button class="sb-add-btn" onclick="promptNewCollection()">+</button>
+      </div>
+      ${colHtml||'<div style="font-size:11px;color:var(--text3);padding:4px 8px">なし</div>'}
+    </div>
+    ${allTags.length?`<div class="sb-section">
+      <div class="sb-section-label">タグ</div>
+      ${tagHtml}
+    </div>`:''}`;
+}
+function getSmartCount(f){
+  if(f==='starred')return papers.filter(p=>p.starred).length;
+  if(f==='recent'){const w=Date.now()-7*864e5;return papers.filter(p=>p.created>w).length;}
+  if(f==='unread')return papers.filter(p=>p.status==='unread').length;
+  return 0;
+}
+function setSmartFilter(f){smartFilter=f;activeCollection=null;activeTag=null;renderAll();}
+function setCollection(id){activeCollection=id;smartFilter=null;activeTag=null;renderAll();}
+function clearFilters(){smartFilter=null;activeCollection=null;activeTag=null;renderAll();}
+function promptNewCollection(){
+  const name=prompt('コレクション名を入力してください');
+  if(name&&name.trim())createCollection(name.trim());
+}
+
 async function loadTagColors(){
   try{
     const rows=await sbFetch('tag_colors?limit=1000');
@@ -489,6 +640,10 @@ function getFiltered(){
   const cat=document.getElementById('filter-cat').value;
   const sort=document.getElementById('sort-sel').value;
   let list=papers.filter(p=>{
+    if(smartFilter==='starred'&&!p.starred)return false;
+    if(smartFilter==='recent'&&p.created<Date.now()-7*864e5)return false;
+    if(smartFilter==='unread'&&p.status!=='unread')return false;
+    if(activeCollection&&!(paperCollections[p.id]||[]).includes(activeCollection))return false;
     if(st&&p.status!==st)return false;
     if(cat&&p.category!==cat)return false;
     if(activeTag&&!(p.tags||[]).includes(activeTag))return false;
@@ -497,7 +652,7 @@ function getFiltered(){
   });
   return list.sort((a,b)=>sort==='date-asc'?a.created-b.created:sort==='date-desc'?b.created-a.created:sort==='title'?a.title.localeCompare(b.title,'ja'):({unread:0,reading:1,done:2}[a.status]-{unread:0,reading:1,done:2}[b.status]));
 }
-function renderAll(){renderStats();renderFilters();renderList();}
+function renderAll(){renderStats();renderFilters();renderList();renderSidebar();}
 function renderTagManager(){
   const allTags=[...new Set(papers.flatMap(p=>p.tags||[]))].sort();
   const el=document.getElementById('tag-mgr-body');
@@ -587,15 +742,13 @@ function renderMatrixTable(list,sl,sc,colF){
   return '<table class="matrix-table" style="min-width:'+minW+'">'+thead+tbody+'</table>';
 }
 function openDetailFromMatrix(id){openDetail(id);}
-function renderStats(){
-  document.getElementById('stats-sb').innerHTML=[['合計',papers.length],['読了',papers.filter(p=>p.status==='done').length],['読書中',papers.filter(p=>p.status==='reading').length],['未読',papers.filter(p=>p.status==='unread').length]].map(([l,n])=>`<div class="stat"><div class="stat-num">${n}</div><div class="stat-lbl">${l}</div></div>`).join('');
-}
+function renderStats(){}
 function renderFilters(){
   const cs=document.getElementById('filter-cat'),cv=cs.value;
   cs.innerHTML='<option value="">すべて</option>'+[...new Set(papers.map(p=>p.category).filter(Boolean))].sort().map(c=>`<option value="${esc(c)}"${c===cv?' selected':''}>${esc(c)}</option>`).join('');
   document.getElementById('tag-cloud').innerHTML=[...new Set(papers.flatMap(p=>p.tags||[]))].sort().map(t=>`<button class="tag-btn${t===activeTag?' active':''}" style="${t!==activeTag&&tagColors[t]?`color:${tagColors[t]};border-color:${tagColors[t]}66;background:${tagColors[t]}18`:''}" onclick="toggleTag('${t.replace(/'/g,"\\'")}')">${esc(t)}</button>`).join('');
 }
-function toggleTag(t){activeTag=activeTag===t?null:t;renderAll();}
+function toggleTag(t){activeTag=activeTag===t?null:t;smartFilter=null;activeCollection=null;renderAll();}
 function renderList(){
   const list=getFiltered(),el=document.getElementById('paper-list');
   if(!list.length){el.innerHTML='<div class="empty">論文が見つかりません<br><span style="font-size:12px;color:var(--text3)">「+ 追加」から登録してください</span></div>';return;}
@@ -604,7 +757,11 @@ function renderList(){
     const sl={unread:'未読',reading:'読書中',done:'読了'}[p.status];
     const tags=(p.tags||[]).map(t=>`<span class="tg" style="${getTagStyle(t)}">${esc(t)}</span>`).join('');
     return `<div class="pc${p.id===selId?' sel':''}" onclick="openDetail(${p.id})">
-      <div class="ph"><div class="pt">${esc(p.title)}</div><span class="sb ${sc}">${sl}</span></div>
+      <div class="ph">
+        <div class="pt">${esc(p.title)}</div>
+        <span onclick="toggleStar(${p.id},event)" style="cursor:pointer;font-size:14px;color:${p.starred?'var(--yellow)':'var(--text3)'};flex-shrink:0;padding:0 4px">${p.starred?'★':'☆'}</span>
+        <span class="sb ${sc}">${sl}</span>
+      </div>
       <div class="pm">${esc([p.author,p.venue,p.year].filter(Boolean).join(' · '))}</div>
       <div class="pt-row">${tags}${p.url?'<span class="pdf-badge">PDF</span>':''}</div>
       ${p.quick_note?`<div class="pnp">${esc(p.quick_note)}</div>`:''}
@@ -653,6 +810,21 @@ function openDetail(id){
   if(p.aiSummary){ab.style.display='block';ab.className='ai-box';ab.innerHTML=`<strong style="font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px">キーワード</strong>\n${esc(p.aiKeywords)}\n\n<strong style="font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px">要約</strong>\n${esc(p.aiSummary)}`;}
   else{ab.style.display='none';}
 
+  // star button
+  const starBtn=document.getElementById('d-star-btn');
+  starBtn.textContent=p.starred?'★':'☆';
+  starBtn.style.color=p.starred?'var(--yellow)':'var(--text3)';
+  // collections
+  const dcol=document.getElementById('d-collections');
+  dcol.innerHTML=collections.map(c=>{
+    const has=(paperCollections[p.id]||[]).includes(c.id);
+    return `<button onclick="togglePaperCollection(${p.id},${c.id})" style="font-size:11px;padding:3px 10px;border-radius:20px;border:1px solid ${has?'var(--accent)':'var(--border)'};background:${has?'var(--accent-dim)':'none'};color:${has?'var(--accent)':'var(--text3)'};cursor:pointer;font-family:inherit">${has?'✓ ':''} ${esc(c.name)}</button>`;
+  }).join('')+(collections.length===0?'<span style="font-size:12px;color:var(--text3)">コレクションがありません。サイドバーの「+」から作成できます。</span>':'');
+  // rich memo
+  const rmv=document.getElementById('d-rich-memo-view');
+  rmv.innerHTML=p.rich_memo||'<span style="color:var(--text3);font-style:italic">メモなし（編集ボタンで追加）</span>';
+  document.getElementById('d-rich-memo-editor').style.display='none';
+  document.getElementById('memo-edit-btn').textContent='編集';
   clearPdfFile();document.getElementById('pdf-ai-box').style.display='none';document.getElementById('rec-area').innerHTML='';
   document.getElementById('detail-overlay').classList.add('open');renderList();
 }
@@ -743,6 +915,48 @@ async function runRec(){
   }catch(e){ra.innerHTML=`<div style="font-size:12px;color:var(--red);padding:6px 0">${esc(e.message)}</div>`;}
 }
 function openRecPaper(id){closeDetail();setTimeout(()=>openDetail(id),100);}
+async function toggleStarDetail(){
+  const p=papers.find(x=>x.id===selId);if(!p)return;
+  p.starred=!p.starred;await save(p);
+  const btn=document.getElementById('d-star-btn');
+  btn.textContent=p.starred?'★':'☆';btn.style.color=p.starred?'var(--yellow)':'var(--text3)';
+  renderAll();
+}
+function toggleMemoEdit(){
+  const editor=document.getElementById('d-rich-memo-editor');
+  const view=document.getElementById('d-rich-memo-view');
+  const btn=document.getElementById('memo-edit-btn');
+  const p=papers.find(x=>x.id===selId);
+  if(editor.style.display==='none'){
+    editor.style.display='block';view.style.display='none';btn.textContent='閉じる';
+    document.getElementById('rich-editor').innerHTML=p?.rich_memo||'';
+    document.getElementById('rich-editor').focus();
+  }else{
+    editor.style.display='none';view.style.display='block';btn.textContent='編集';
+  }
+}
+function cancelMemoEdit(){
+  document.getElementById('d-rich-memo-editor').style.display='none';
+  document.getElementById('d-rich-memo-view').style.display='block';
+  document.getElementById('memo-edit-btn').textContent='編集';
+}
+async function saveMemo(){
+  const p=papers.find(x=>x.id===selId);if(!p)return;
+  const html=document.getElementById('rich-editor').innerHTML;
+  p.rich_memo=html;await save(p);
+  document.getElementById('d-rich-memo-view').innerHTML=html||'<span style="color:var(--text3);font-style:italic">メモなし</span>';
+  cancelMemoEdit();
+}
+function execCmd(cmd){document.execCommand(cmd,false,null);}
+function insertHeading(tag){
+  const sel=window.getSelection();
+  if(!sel.rangeCount)return;
+  const range=sel.getRangeAt(0);
+  const el=document.createElement(tag);
+  el.textContent=sel.toString()||'見出し';
+  range.deleteContents();
+  range.insertNode(el);
+}
 
 /* LOOKUP */
 let lookupMode='doi';
