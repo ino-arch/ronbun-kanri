@@ -255,10 +255,11 @@ textarea.note-input{background:var(--bg4);border-color:var(--border);font-size:1
       <select id="matrix-col-filter" onchange="renderMatrix()" style="width:150px;background:var(--bg2)">
         <option value="all">全項目表示</option>
         <option value="objective">目的のみ</option>
-        <option value="subjects">対象者のみ</option>
-        <option value="protocol">プロトコルのみ</option>
+        <option value="study_design">研究デザインのみ</option>
+        <option value="_subjects_summary">対象者のみ</option>
+        <option value="_protocol_summary">介入のみ</option>
         <option value="outcomes">結果のみ</option>
-        <option value="statistics">統計のみ</option>
+        <option value="effect_size">効果量のみ</option>
         <option value="discussion">考察のみ</option>
       </select>
       <div style="flex:1"></div>
@@ -541,9 +542,14 @@ async function load(){
     if(sd){sd.style.background='var(--red)';}
   }
 }
-async function save(p){
-  try{await sbFetch(SB_TABLE,{method:'POST',headers:{'Prefer':'resolution=merge-duplicates'},body:JSON.stringify(toRow(p))});}
-  catch(e){console.error('save error',e);}
+async function save(p, isNew=false){
+  try{
+    if(isNew){
+      await sbFetch(SB_TABLE,{method:'POST',body:JSON.stringify(toRow(p))});
+    }else{
+      await sbFetch(SB_TABLE+'?id=eq.'+p.id,{method:'PATCH',body:JSON.stringify(toRow(p))});
+    }
+  }catch(e){console.error('save error',e);}
 }
 /* COLLECTIONS */
 async function loadCollections(){
@@ -780,13 +786,15 @@ function renderMatrix(){
 }
 const ALL_COLS=[
   {key:'objective',label:'目的・研究課題',color:'var(--purple)'},
-  {key:'subjects',label:'対象者・参加者',color:'var(--blue)'},
-  {key:'protocol',label:'介入プロトコル',color:'var(--purple)'},
+  {key:'study_design',label:'研究デザイン',color:'var(--purple)'},
+  {key:'_subjects_summary',label:'対象者',color:'var(--blue)',custom:true},
+  {key:'_protocol_summary',label:'介入プロトコル',color:'var(--purple)',custom:true},
   {key:'outcomes',label:'主な結果',color:'var(--accent)'},
+  {key:'effect_size',label:'効果量',color:'var(--yellow)'},
   {key:'statistics',label:'統計解析',color:'var(--yellow)'},
   {key:'discussion',label:'考察・限界',color:'var(--orange)'},
   {key:'quick_note',label:'一言メモ',color:'var(--text2)'},
-  {key:'prior_research',label:'先行研究としての活用メモ',color:'var(--accent)',full:true},
+  {key:'prior_research',label:'先行研究活用',color:'var(--accent)'},
 ];
 function renderMatrixTable(list,sl,sc,colF){
   const cols=colF==='all'?ALL_COLS:ALL_COLS.filter(c=>c.key===colF);
@@ -796,8 +804,19 @@ function renderMatrixTable(list,sl,sc,colF){
     '</tr></thead>';
   const tbody='<tbody>'+list.map(p=>{
     const tds=cols.map(c=>{
-      const val=p[c.key]||'';
-      return '<td class="col-data"><div class="matrix-cell'+(val?'':' matrix-empty')+'">'+(val?esc(val):'—')+'</div></td>';
+      let val='';
+      if(c.custom){
+        if(c.key==='_subjects_summary'){
+          const parts=[[p.study_design],[p.n_total,p.sex].filter(Boolean).join(' / '),[p.age],[p.training_background]].filter(Boolean);
+          val=parts.join('\n');
+        }else if(c.key==='_protocol_summary'){
+          const parts=[[p.intervention_duration,p.intervention_frequency].filter(Boolean).join(' / '),(p.intervention_intensity),(p.intervention_exercise)].filter(Boolean);
+          val=parts.join('\n');
+        }
+      }else{
+        val=p[c.key]||'';
+      }
+      return '<td class="col-data"><div class="matrix-cell'+(val?'':' matrix-empty')+'" style="white-space:pre-line">'+(val?esc(val):'—')+'</div></td>';
     }).join('');
     return '<tr onclick="openDetailFromMatrix('+p.id+')">'+
       '<td class="col-title">'+
@@ -1249,7 +1268,7 @@ async function savePaper(){
   }else{
     paper={id:Date.now(),title,author:document.getElementById('f-author').value.trim(),venue:document.getElementById('f-venue').value.trim(),year:document.getElementById('f-year').value.trim(),url:document.getElementById('f-url').value.trim(),category:document.getElementById('f-category').value.trim(),tags,status:document.getElementById('f-status').value,quick_note:document.getElementById('f-quick_note').value.trim(),subjects:document.getElementById('f-subjects').value.trim(),protocol:document.getElementById('f-protocol').value.trim(),outcomes:document.getElementById('f-outcomes').value.trim(),statistics:document.getElementById('f-statistics').value.trim(),discussion:document.getElementById('f-discussion').value.trim(),prior_research:document.getElementById('f-prior_research').value.trim(),objective:document.getElementById('f-objective').value.trim(),study_design:document.getElementById('f-study_design').value,n_total:document.getElementById('f-n_total').value.trim(),sex:document.getElementById('f-sex').value,age:document.getElementById('f-age').value.trim(),training_background:document.getElementById('f-training_background').value.trim(),intervention_duration:document.getElementById('f-intervention_duration').value.trim(),intervention_frequency:document.getElementById('f-intervention_frequency').value.trim(),intervention_intensity:document.getElementById('f-intervention_intensity').value.trim(),intervention_exercise:document.getElementById('f-intervention_exercise').value.trim(),effect_size:document.getElementById('f-effect_size').value.trim(),memo:'',created:Date.now(),aiSummary:'',aiKeywords:''};
   }
-  await save(paper);
+  await save(paper, !editId);
   if(!editId)papers.unshift(paper);
   closeAdd();renderAll();
 }
