@@ -306,8 +306,17 @@ textarea.note-input{background:var(--bg4);border-color:var(--border);font-size:1
       <div class="fr"><label>雑誌・会議名</label><input id="f-venue" type="text" placeholder="J Strength Cond Res など"></div>
       <div class="fr"><label>年</label><input id="f-year" type="text" placeholder="2024"></div>
       <div class="fr"><label>PDF URL / DOI URL</label><input id="f-url" type="text" placeholder="https://pubmed.ncbi.nlm.nih.gov/..."></div>
-      <div class="fr"><label>カテゴリ</label><input id="f-category" type="text" placeholder="筋力トレーニング, 持久力 など"></div>
-      <div class="fr" style="grid-column:1/-1"><label>タグ（カンマ区切り）</label><input id="f-tags" type="text" placeholder="RCT, レジスタンス, 高齢者"></div>
+      <div class="fr">
+        <label>カテゴリ</label>
+        <input id="f-category" type="text" placeholder="筋力トレーニング, 持久力 など" oninput="filterCatSuggest()" onfocus="showCatSuggest()" onblur="setTimeout(hideCatSuggest,150)" autocomplete="off">
+        <div id="cat-suggest" class="suggest-box" style="display:none"></div>
+      </div>
+      <div class="fr" style="grid-column:1/-1">
+        <label>タグ（カンマ区切り）</label>
+        <input id="f-tags" type="text" placeholder="RCT, レジスタンス, 高齢者" oninput="filterTagSuggest()" onfocus="showTagSuggest()" onblur="setTimeout(hideTagSuggest,150)" autocomplete="off">
+        <div id="tag-suggest" class="suggest-box" style="display:none"></div>
+        <div id="tag-suggest-all" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px"></div>
+      </div>
       <div class="fr"><label>読了状態</label><select id="f-status"><option value="unread">未読</option><option value="reading">読書中</option><option value="done">読了</option></select></div>
       <div class="fr"><label>一言メモ</label><input id="f-quick_note" type="text" placeholder="この論文を一言で言うと..."></div>
     </div>
@@ -315,9 +324,49 @@ textarea.note-input{background:var(--bg4);border-color:var(--border);font-size:1
     <div style="font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3);margin:14px 0 10px;padding-top:14px;border-top:1px solid var(--border)">研究詳細</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <div class="fr" style="grid-column:1/-1"><label>目的・研究課題</label><textarea id="f-objective" placeholder="例: 高強度インターバルトレーニングが最大酸素摂取量に与える影響を検討する&#10;例: レジスタンストレーニングの頻度と筋肥大の関係を明らかにする"></textarea></div>
-      <div class="fr"><label>対象者・参加者</label><textarea id="f-subjects" placeholder="例: 健常男性20名（22±2歳）&#10;トレーニング経験2年以上&#10;除外基準: 骨格筋疾患など"></textarea></div>
-      <div class="fr"><label>トレーニング・介入プロトコル</label><textarea id="f-protocol" placeholder="例: 週3回12週間&#10;3セット×8-12回&#10;強度: 1RM 70-80%&#10;種目: スクワット、レッグプレス..."></textarea></div>
+      <div class="fr" style="grid-column:1/-1">
+        <label style="color:var(--blue)">▸ 対象者</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px">
+          <div><label style="font-size:10px">研究デザイン</label>
+            <select id="f-study_design" style="margin-top:3px">
+              <option value="">選択...</option>
+              <option>RCT</option>
+              <option>クロスオーバー</option>
+              <option>コホート研究</option>
+              <option>ケースコントロール</option>
+              <option>横断研究</option>
+              <option>症例報告</option>
+              <option>システマティックレビュー</option>
+              <option>メタアナリシス</option>
+              <option>その他</option>
+            </select>
+          </div>
+          <div><label style="font-size:10px">人数（n数）</label><input id="f-n_total" type="text" placeholder="例: 24名（男12, 女12）" style="margin-top:3px"></div>
+          <div><label style="font-size:10px">性別</label>
+            <select id="f-sex" style="margin-top:3px">
+              <option value="">選択...</option>
+              <option>男性のみ</option>
+              <option>女性のみ</option>
+              <option>男女混合</option>
+            </select>
+          </div>
+          <div><label style="font-size:10px">年齢</label><input id="f-age" type="text" placeholder="例: 22.3±2.1歳" style="margin-top:3px"></div>
+          <div style="grid-column:1/-1"><label style="font-size:10px">トレーニング歴・競技レベル</label><input id="f-training_background" type="text" placeholder="例: レジスタンストレーニング経験2年以上" style="margin-top:3px"></div>
+          <div style="grid-column:1/-1"><label style="font-size:10px">その他（除外基準など）</label><textarea id="f-subjects" placeholder="例: 除外基準: 骨格筋疾患, 心疾患&#10;健康状態: 全員健常者" style="margin-top:3px;min-height:56px"></textarea></div>
+        </div>
+      </div>
+      <div class="fr" style="grid-column:1/-1">
+        <label style="color:var(--purple)">▸ 介入プロトコル</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px">
+          <div><label style="font-size:10px">期間</label><input id="f-intervention_duration" type="text" placeholder="例: 12週間" style="margin-top:3px"></div>
+          <div><label style="font-size:10px">頻度</label><input id="f-intervention_frequency" type="text" placeholder="例: 週3回" style="margin-top:3px"></div>
+          <div><label style="font-size:10px">強度・負荷</label><input id="f-intervention_intensity" type="text" placeholder="例: 1RM 70-80%, 3セット×8-12回" style="margin-top:3px"></div>
+          <div><label style="font-size:10px">種目・内容</label><input id="f-intervention_exercise" type="text" placeholder="例: スクワット, レッグプレス" style="margin-top:3px"></div>
+          <div style="grid-column:1/-1"><label style="font-size:10px">その他・詳細</label><textarea id="f-protocol" placeholder="例: 対照群は通常生活を維持&#10;ウォームアップ: 10分間の自転車エルゴメーター" style="margin-top:3px;min-height:56px"></textarea></div>
+        </div>
+      </div>
       <div class="fr"><label>主な結果・アウトカム</label><textarea id="f-outcomes" placeholder="例: 筋断面積 +12%（p&lt;0.05）&#10;1RM +18%&#10;筋力とタンパク摂取量に有意な相関（r=0.72）"></textarea></div>
+      <div class="fr"><label>効果量</label><input id="f-effect_size" type="text" placeholder="例: d=0.82（large）, η²=0.14, r=0.65"></div>
       <div class="fr"><label>統計解析方法</label><textarea id="f-statistics" placeholder="例: 2×2 反復測定ANOVA&#10;効果量: Cohen's d&#10;有意水準: p&lt;0.05"></textarea></div>
       <div class="fr" style="grid-column:1/-1"><label>考察・限界・実用上の指標</label><textarea id="f-discussion" placeholder="例: サンプルサイズが小さい&#10;介入期間が短い&#10;実用上は週2回でも効果が期待できる"></textarea></div>
       <div class="fr" style="grid-column:1/-1"><label>先行研究としての活用メモ</label><textarea id="f-prior_research" placeholder="例: ○○の研究の対照群として引用できる&#10;サンプルサイズの根拠として使える&#10;同様の介入で異なる結果が出ており対比として有用"></textarea></div>
@@ -458,14 +507,14 @@ function toRow(p){
     url:p.url||'',category:p.category||'',tags:p.tags||[],status:p.status||'unread',
     memo:p.memo||'',ai_summary:p.aiSummary||'',ai_keywords:p.aiKeywords||'',created:p.created,
     subjects:p.subjects||'',protocol:p.protocol||'',outcomes:p.outcomes||'',
-    statistics:p.statistics||'',discussion:p.discussion||'',quick_note:p.quick_note||'',prior_research:p.prior_research||'',rich_memo:p.rich_memo||'',starred:p.starred||false,objective:p.objective||''};
+    statistics:p.statistics||'',discussion:p.discussion||'',quick_note:p.quick_note||'',prior_research:p.prior_research||'',rich_memo:p.rich_memo||'',starred:p.starred||false,objective:p.objective||'',study_design:p.study_design||'',n_total:p.n_total||'',sex:p.sex||'',age:p.age||'',training_background:p.training_background||'',intervention_duration:p.intervention_duration||'',intervention_frequency:p.intervention_frequency||'',intervention_intensity:p.intervention_intensity||'',intervention_exercise:p.intervention_exercise||'',effect_size:p.effect_size||''};
 }
 function fromRow(r){
   return {id:r.id,title:r.title,author:r.author,venue:r.venue,year:r.year,url:r.url,
     category:r.category,tags:r.tags||[],status:r.status,memo:r.memo||'',
     aiSummary:r.ai_summary||'',aiKeywords:r.ai_keywords||'',created:r.created,
     subjects:r.subjects||'',protocol:r.protocol||'',outcomes:r.outcomes||'',
-    statistics:r.statistics||'',discussion:r.discussion||'',quick_note:r.quick_note||'',prior_research:r.prior_research||'',rich_memo:r.rich_memo||'',starred:r.starred||false,objective:r.objective||''};
+    statistics:r.statistics||'',discussion:r.discussion||'',quick_note:r.quick_note||'',prior_research:r.prior_research||'',rich_memo:r.rich_memo||'',starred:r.starred||false,objective:r.objective||'',study_design:r.study_design||'',n_total:r.n_total||'',sex:r.sex||'',age:r.age||'',training_background:r.training_background||'',intervention_duration:r.intervention_duration||'',intervention_frequency:r.intervention_frequency||'',intervention_intensity:r.intervention_intensity||'',intervention_exercise:r.intervention_exercise||'',effect_size:r.effect_size||''};
 }
 
 let papers=[],selId=null,editId=null,activeTag=null,apiKey='';
@@ -782,7 +831,7 @@ function renderList(){
         <span class="sb ${sc}">${sl}</span>
       </div>
       <div class="pm">${esc([p.author,p.venue,p.year].filter(Boolean).join(' · '))}</div>
-      <div class="pt-row">${tags}${p.url?'<span class="pdf-badge">PDF</span>':''}</div>
+      <div class="pt-row">${tags}${p.study_design?`<span class="tg" style="color:var(--purple);border-color:var(--purple-dim);background:var(--purple-dim)">${esc(p.study_design)}</span>`:''} ${p.url?'<span class="pdf-badge">PDF</span>':''}</div>
       ${p.quick_note?`<div class="pnp">${esc(p.quick_note)}</div>`:''}
     </div>`;
   }).join('');
@@ -818,6 +867,29 @@ function openDetail(id){
   // Structured notes
   const ng=document.getElementById('d-notes-grid');
   ng.innerHTML=NOTE_BLOCKS.map(b=>{
+    if(b.custom){
+      if(b.key==='_subjects_detail'){
+        const rows=[
+          ['研究デザイン',p.study_design],['人数',p.n_total],['性別',p.sex],['年齢',p.age],
+          ['トレーニング歴',p.training_background],['その他',p.subjects]
+        ].filter(([,v])=>v);
+        const inner=rows.length?rows.map(([k,v])=>`<div style="display:flex;gap:8px;padding:4px 0;border-bottom:1px solid var(--border)"><span style="font-size:11px;color:var(--text3);width:100px;flex-shrink:0">${k}</span><span style="font-size:12px;color:var(--text2)">${esc(v)}</span></div>`).join(''):'<span class="note-empty">未記入</span>';
+        return `<div class="note-block full"><div class="note-label"><div class="note-label-dot" style="background:${b.color}"></div><span style="color:${b.color}">${b.label}</span></div><div>${inner}</div></div>`;
+      }
+      if(b.key==='_protocol_detail'){
+        const rows=[
+          ['期間',p.intervention_duration],['頻度',p.intervention_frequency],
+          ['強度・負荷',p.intervention_intensity],['種目',p.intervention_exercise],['詳細',p.protocol]
+        ].filter(([,v])=>v);
+        const inner=rows.length?rows.map(([k,v])=>`<div style="display:flex;gap:8px;padding:4px 0;border-bottom:1px solid var(--border)"><span style="font-size:11px;color:var(--text3);width:100px;flex-shrink:0">${k}</span><span style="font-size:12px;color:var(--text2);white-space:pre-wrap">${esc(v)}</span></div>`).join(''):'<span class="note-empty">未記入</span>';
+        return `<div class="note-block full"><div class="note-label"><div class="note-label-dot" style="background:${b.color}"></div><span style="color:${b.color}">${b.label}</span></div><div>${inner}</div></div>`;
+      }
+      if(b.key==='_stats_detail'){
+        const rows=[['効果量',p.effect_size],['統計解析',p.statistics]].filter(([,v])=>v);
+        const inner=rows.length?rows.map(([k,v])=>`<div style="display:flex;gap:8px;padding:4px 0;border-bottom:1px solid var(--border)"><span style="font-size:11px;color:var(--text3);width:100px;flex-shrink:0">${k}</span><span style="font-size:12px;color:var(--text2);white-space:pre-wrap">${esc(v)}</span></div>`).join(''):'<span class="note-empty">未記入</span>';
+        return `<div class="note-block full"><div class="note-label"><div class="note-label-dot" style="background:${b.color}"></div><span style="color:${b.color}">${b.label}</span></div><div>${inner}</div></div>`;
+      }
+    }
     const val=p[b.key]||'';
     return `<div class="note-block${b.full?' full':''}">
       <div class="note-label"><div class="note-label-dot" style="background:${b.color}"></div><span style="color:${b.color}">${b.label}</span></div>
@@ -1071,8 +1143,66 @@ async function fetchLookup(){
   btn.disabled=false;btn.textContent='取得';
 }
 
+/* SUGGEST */
+function showCatSuggest(){
+  const cats=[...new Set(papers.map(p=>p.category).filter(Boolean))].sort();
+  renderCatSuggest(cats);
+  document.getElementById('cat-suggest').style.display=cats.length?'block':'none';
+}
+function hideCatSuggest(){document.getElementById('cat-suggest').style.display='none';}
+function filterCatSuggest(){
+  const q=document.getElementById('f-category').value.toLowerCase();
+  const cats=[...new Set(papers.map(p=>p.category).filter(Boolean))].filter(c=>c.toLowerCase().includes(q)).sort();
+  renderCatSuggest(cats);
+  document.getElementById('cat-suggest').style.display=cats.length?'block':'none';
+}
+function renderCatSuggest(cats){
+  document.getElementById('cat-suggest').innerHTML=cats.map(c=>`<div class="suggest-item" onmousedown="selectCat('${c.replace(/'/g,"\'")}')"> ${esc(c)}</div>`).join('');
+}
+function selectCat(c){document.getElementById('f-category').value=c;hideCatSuggest();}
+
+function showTagSuggest(){
+  renderTagAll();
+  filterTagSuggest();
+}
+function hideTagSuggest(){document.getElementById('tag-suggest').style.display='none';}
+function filterTagSuggest(){
+  const inp=document.getElementById('f-tags').value;
+  const last=inp.split(',').pop().trim().toLowerCase();
+  if(!last){document.getElementById('tag-suggest').style.display='none';return;}
+  const used=(inp.split(',').map(t=>t.trim()).filter(Boolean));
+  const tags=[...new Set(papers.flatMap(p=>p.tags||[]))].filter(t=>t.toLowerCase().includes(last)&&!used.includes(t)).sort();
+  document.getElementById('tag-suggest').innerHTML=tags.map(t=>`<div class="suggest-item" onmousedown="appendTag('${t.replace(/'/g,"\'")}')"> ${tagColors[t]?`<span style="width:7px;height:7px;border-radius:50%;background:${tagColors[t]};display:inline-block;margin-right:5px"></span>`:''} ${esc(t)}</div>`).join('');
+  document.getElementById('tag-suggest').style.display=tags.length?'block':'none';
+}
+function renderTagAll(){
+  const used=document.getElementById('f-tags').value.split(',').map(t=>t.trim()).filter(Boolean);
+  const allTags=[...new Set(papers.flatMap(p=>p.tags||[]))].sort();
+  document.getElementById('tag-suggest-all').innerHTML=allTags.map(t=>{
+    const active=used.includes(t);
+    const col=tagColors[t];
+    return `<span class="suggest-chip${active?' active-chip':''}" style="${active?'background:var(--accent-dim);color:var(--accent);border-color:var(--accent)':col?`color:${col};border-color:${col}66;background:${col}18`:''}" onmousedown="toggleChipTag('${t.replace(/'/g,"\'")}')"> ${esc(t)}</span>`;
+  }).join('');
+}
+function appendTag(t){
+  const inp=document.getElementById('f-tags');
+  const parts=inp.value.split(',').map(x=>x.trim()).filter(Boolean);
+  if(!parts.includes(t))parts.push(t);
+  inp.value=parts.join(', ')+', ';
+  document.getElementById('tag-suggest').style.display='none';
+  renderTagAll();inp.focus();
+}
+function toggleChipTag(t){
+  const inp=document.getElementById('f-tags');
+  let parts=inp.value.split(',').map(x=>x.trim()).filter(Boolean);
+  if(parts.includes(t)){parts=parts.filter(x=>x!==t);}
+  else{parts.push(t);}
+  inp.value=parts.join(', ');
+  renderTagAll();
+}
+
 /* ADD/EDIT */
-function openAdd(){editId=null;clearForm();document.getElementById('modal-label').textContent='論文を追加';document.getElementById('del-btn').style.display='none';document.getElementById('add-overlay').classList.add('open');}
+function openAdd(){editId=null;clearForm();document.getElementById('modal-label').textContent='論文を追加';document.getElementById('del-btn').style.display='none';document.getElementById('add-overlay').classList.add('open');setTimeout(renderTagAll,50);}
 function closeAdd(){document.getElementById('add-overlay').classList.remove('open');editId=null;}
 function openEditModal(p){
   editId=p.id;document.getElementById('modal-label').textContent='論文を編集';document.getElementById('del-btn').style.display='';
@@ -1086,10 +1216,22 @@ function openEditModal(p){
   document.getElementById('f-discussion').value=p.discussion||'';
   document.getElementById('f-prior_research').value=p.prior_research||'';
   document.getElementById('f-objective').value=p.objective||'';
+  document.getElementById('f-study_design').value=p.study_design||'';
+  document.getElementById('f-n_total').value=p.n_total||'';
+  document.getElementById('f-sex').value=p.sex||'';
+  document.getElementById('f-age').value=p.age||'';
+  document.getElementById('f-training_background').value=p.training_background||'';
+  document.getElementById('f-intervention_duration').value=p.intervention_duration||'';
+  document.getElementById('f-intervention_frequency').value=p.intervention_frequency||'';
+  document.getElementById('f-intervention_intensity').value=p.intervention_intensity||'';
+  document.getElementById('f-intervention_exercise').value=p.intervention_exercise||'';
+  document.getElementById('f-effect_size').value=p.effect_size||'';
   document.getElementById('add-overlay').classList.add('open');
+  setTimeout(renderTagAll,50);
 }
 function clearForm(){
-  ['f-title','f-author','f-venue','f-year','f-url','f-category','f-tags','f-quick_note','f-objective','f-subjects','f-protocol','f-outcomes','f-statistics','f-discussion','f-prior_research'].forEach(id=>document.getElementById(id).value='');
+  ['f-title','f-author','f-venue','f-year','f-url','f-category','f-tags','f-quick_note','f-objective','f-subjects','f-protocol','f-outcomes','f-statistics','f-discussion','f-prior_research','f-n_total','f-age','f-training_background','f-intervention_duration','f-intervention_frequency','f-intervention_intensity','f-intervention_exercise','f-effect_size'].forEach(id=>document.getElementById(id).value='');
+  ['f-study_design','f-sex'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('f-status').value='unread';
   document.getElementById('f-lookup-input').value='';
   document.getElementById('lookup-status').style.display='none';
@@ -1102,10 +1244,10 @@ async function savePaper(){
     paper=papers.find(x=>x.id===editId);
     if(paper){
       paper.title=title;paper.author=document.getElementById('f-author').value.trim();paper.venue=document.getElementById('f-venue').value.trim();paper.year=document.getElementById('f-year').value.trim();paper.url=document.getElementById('f-url').value.trim();paper.category=document.getElementById('f-category').value.trim();paper.tags=tags;paper.status=document.getElementById('f-status').value;paper.quick_note=document.getElementById('f-quick_note').value.trim();
-      paper.subjects=document.getElementById('f-subjects').value.trim();paper.protocol=document.getElementById('f-protocol').value.trim();paper.outcomes=document.getElementById('f-outcomes').value.trim();paper.statistics=document.getElementById('f-statistics').value.trim();paper.discussion=document.getElementById('f-discussion').value.trim();paper.prior_research=document.getElementById('f-prior_research').value.trim();paper.objective=document.getElementById('f-objective').value.trim();
+      paper.subjects=document.getElementById('f-subjects').value.trim();paper.protocol=document.getElementById('f-protocol').value.trim();paper.outcomes=document.getElementById('f-outcomes').value.trim();paper.statistics=document.getElementById('f-statistics').value.trim();paper.discussion=document.getElementById('f-discussion').value.trim();paper.prior_research=document.getElementById('f-prior_research').value.trim();paper.objective=document.getElementById('f-objective').value.trim();paper.study_design=document.getElementById('f-study_design').value;paper.n_total=document.getElementById('f-n_total').value.trim();paper.sex=document.getElementById('f-sex').value;paper.age=document.getElementById('f-age').value.trim();paper.training_background=document.getElementById('f-training_background').value.trim();paper.intervention_duration=document.getElementById('f-intervention_duration').value.trim();paper.intervention_frequency=document.getElementById('f-intervention_frequency').value.trim();paper.intervention_intensity=document.getElementById('f-intervention_intensity').value.trim();paper.intervention_exercise=document.getElementById('f-intervention_exercise').value.trim();paper.effect_size=document.getElementById('f-effect_size').value.trim();
     }
   }else{
-    paper={id:Date.now(),title,author:document.getElementById('f-author').value.trim(),venue:document.getElementById('f-venue').value.trim(),year:document.getElementById('f-year').value.trim(),url:document.getElementById('f-url').value.trim(),category:document.getElementById('f-category').value.trim(),tags,status:document.getElementById('f-status').value,quick_note:document.getElementById('f-quick_note').value.trim(),subjects:document.getElementById('f-subjects').value.trim(),protocol:document.getElementById('f-protocol').value.trim(),outcomes:document.getElementById('f-outcomes').value.trim(),statistics:document.getElementById('f-statistics').value.trim(),discussion:document.getElementById('f-discussion').value.trim(),prior_research:document.getElementById('f-prior_research').value.trim(),objective:document.getElementById('f-objective').value.trim(),memo:'',created:Date.now(),aiSummary:'',aiKeywords:''};
+    paper={id:Date.now(),title,author:document.getElementById('f-author').value.trim(),venue:document.getElementById('f-venue').value.trim(),year:document.getElementById('f-year').value.trim(),url:document.getElementById('f-url').value.trim(),category:document.getElementById('f-category').value.trim(),tags,status:document.getElementById('f-status').value,quick_note:document.getElementById('f-quick_note').value.trim(),subjects:document.getElementById('f-subjects').value.trim(),protocol:document.getElementById('f-protocol').value.trim(),outcomes:document.getElementById('f-outcomes').value.trim(),statistics:document.getElementById('f-statistics').value.trim(),discussion:document.getElementById('f-discussion').value.trim(),prior_research:document.getElementById('f-prior_research').value.trim(),objective:document.getElementById('f-objective').value.trim(),study_design:document.getElementById('f-study_design').value,n_total:document.getElementById('f-n_total').value.trim(),sex:document.getElementById('f-sex').value,age:document.getElementById('f-age').value.trim(),training_background:document.getElementById('f-training_background').value.trim(),intervention_duration:document.getElementById('f-intervention_duration').value.trim(),intervention_frequency:document.getElementById('f-intervention_frequency').value.trim(),intervention_intensity:document.getElementById('f-intervention_intensity').value.trim(),intervention_exercise:document.getElementById('f-intervention_exercise').value.trim(),effect_size:document.getElementById('f-effect_size').value.trim(),memo:'',created:Date.now(),aiSummary:'',aiKeywords:''};
   }
   await save(paper);
   if(!editId)papers.unshift(paper);
