@@ -260,6 +260,8 @@ textarea.note-input{background:var(--bg4);border-color:var(--border);font-size:1
         <option value="_protocol_summary">介入のみ</option>
         <option value="outcomes">結果のみ</option>
         <option value="effect_size">効果量のみ</option>
+        <option value="conclusion">結論のみ</option>
+        <option value="practical_application">現場応用のみ</option>
         <option value="discussion">考察のみ</option>
       </select>
       <div style="flex:1"></div>
@@ -369,7 +371,9 @@ textarea.note-input{background:var(--bg4);border-color:var(--border);font-size:1
       <div class="fr"><label>主な結果・アウトカム</label><textarea id="f-outcomes" placeholder="例: 筋断面積 +12%（p&lt;0.05）&#10;1RM +18%&#10;筋力とタンパク摂取量に有意な相関（r=0.72）"></textarea></div>
       <div class="fr"><label>効果量</label><input id="f-effect_size" type="text" placeholder="例: d=0.82（large）, η²=0.14, r=0.65"></div>
       <div class="fr"><label>統計解析方法</label><textarea id="f-statistics" placeholder="例: 2×2 反復測定ANOVA&#10;効果量: Cohen's d&#10;有意水準: p&lt;0.05"></textarea></div>
-      <div class="fr" style="grid-column:1/-1"><label>考察・限界・実用上の指標</label><textarea id="f-discussion" placeholder="例: サンプルサイズが小さい&#10;介入期間が短い&#10;実用上は週2回でも効果が期待できる"></textarea></div>
+      <div class="fr" style="grid-column:1/-1"><label>結論</label><textarea id="f-conclusion" placeholder="例: 週3回のレジスタンストレーニングは筋断面積を有意に増加させた&#10;例: HIITはMCITと同等のVO2max改善効果を示した"></textarea></div>
+      <div class="fr" style="grid-column:1/-1"><label>現場への応用・実用的示唆</label><textarea id="f-practical_application" placeholder="例: 週2回でも効果が期待できるため、多忙なアスリートにも適用可能&#10;例: 高齢者への介入では強度を1RM 60%から開始するのが現実的"></textarea></div>
+      <div class="fr" style="grid-column:1/-1"><label>考察・限界</label><textarea id="f-discussion" placeholder="例: サンプルサイズが小さい&#10;介入期間が短い&#10;実用上は週2回でも効果が期待できる"></textarea></div>
       <div class="fr" style="grid-column:1/-1"><label>先行研究としての活用メモ</label><textarea id="f-prior_research" placeholder="例: ○○の研究の対照群として引用できる&#10;サンプルサイズの根拠として使える&#10;同様の介入で異なる結果が出ており対比として有用"></textarea></div>
     </div>
 
@@ -508,14 +512,14 @@ function toRow(p){
     url:p.url||'',category:p.category||'',tags:p.tags||[],status:p.status||'unread',
     memo:p.memo||'',ai_summary:p.aiSummary||'',ai_keywords:p.aiKeywords||'',created:p.created,
     subjects:p.subjects||'',protocol:p.protocol||'',outcomes:p.outcomes||'',
-    statistics:p.statistics||'',discussion:p.discussion||'',quick_note:p.quick_note||'',prior_research:p.prior_research||'',rich_memo:p.rich_memo||'',starred:p.starred||false,objective:p.objective||'',study_design:p.study_design||'',n_total:p.n_total||'',sex:p.sex||'',age:p.age||'',training_background:p.training_background||'',intervention_duration:p.intervention_duration||'',intervention_frequency:p.intervention_frequency||'',intervention_intensity:p.intervention_intensity||'',intervention_exercise:p.intervention_exercise||'',effect_size:p.effect_size||''};
+    statistics:p.statistics||'',discussion:p.discussion||'',quick_note:p.quick_note||'',prior_research:p.prior_research||'',rich_memo:p.rich_memo||'',starred:p.starred||false,objective:p.objective||'',study_design:p.study_design||'',n_total:p.n_total||'',sex:p.sex||'',age:p.age||'',training_background:p.training_background||'',intervention_duration:p.intervention_duration||'',intervention_frequency:p.intervention_frequency||'',intervention_intensity:p.intervention_intensity||'',intervention_exercise:p.intervention_exercise||'',effect_size:p.effect_size||'',conclusion:p.conclusion||'',practical_application:p.practical_application||''};
 }
 function fromRow(r){
   return {id:r.id,title:r.title,author:r.author,venue:r.venue,year:r.year,url:r.url,
     category:r.category,tags:r.tags||[],status:r.status,memo:r.memo||'',
     aiSummary:r.ai_summary||'',aiKeywords:r.ai_keywords||'',created:r.created,
     subjects:r.subjects||'',protocol:r.protocol||'',outcomes:r.outcomes||'',
-    statistics:r.statistics||'',discussion:r.discussion||'',quick_note:r.quick_note||'',prior_research:r.prior_research||'',rich_memo:r.rich_memo||'',starred:r.starred||false,objective:r.objective||'',study_design:r.study_design||'',n_total:r.n_total||'',sex:r.sex||'',age:r.age||'',training_background:r.training_background||'',intervention_duration:r.intervention_duration||'',intervention_frequency:r.intervention_frequency||'',intervention_intensity:r.intervention_intensity||'',intervention_exercise:r.intervention_exercise||'',effect_size:r.effect_size||''};
+    statistics:r.statistics||'',discussion:r.discussion||'',quick_note:r.quick_note||'',prior_research:r.prior_research||'',rich_memo:r.rich_memo||'',starred:r.starred||false,objective:r.objective||'',study_design:r.study_design||'',n_total:r.n_total||'',sex:r.sex||'',age:r.age||'',training_background:r.training_background||'',intervention_duration:r.intervention_duration||'',intervention_frequency:r.intervention_frequency||'',intervention_intensity:r.intervention_intensity||'',intervention_exercise:r.intervention_exercise||'',effect_size:r.effect_size||'',conclusion:r.conclusion||'',practical_application:r.practical_application||''};
 }
 
 let papers=[],selId=null,editId=null,activeTag=null,apiKey='';
@@ -792,6 +796,8 @@ const ALL_COLS=[
   {key:'outcomes',label:'主な結果',color:'var(--accent)'},
   {key:'effect_size',label:'効果量',color:'var(--yellow)'},
   {key:'statistics',label:'統計解析',color:'var(--yellow)'},
+  {key:'conclusion',label:'結論',color:'var(--accent)'},
+  {key:'practical_application',label:'現場への応用',color:'var(--accent2)'},
   {key:'discussion',label:'考察・限界',color:'var(--orange)'},
   {key:'quick_note',label:'一言メモ',color:'var(--text2)'},
   {key:'prior_research',label:'先行研究活用',color:'var(--accent)'},
@@ -863,7 +869,9 @@ const NOTE_BLOCKS=[
   {key:'protocol',label:'介入プロトコル',color:'var(--purple)'},
   {key:'outcomes',label:'主な結果・アウトカム',color:'var(--accent)'},
   {key:'statistics',label:'統計解析',color:'var(--yellow)'},
-  {key:'discussion',label:'考察・限界・実用指標',color:'var(--orange)',full:true},
+  {key:'conclusion',label:'結論',color:'var(--accent)',full:true},
+  {key:'practical_application',label:'現場への応用・実用的示唆',color:'var(--accent2)',full:true},
+  {key:'discussion',label:'考察・限界',color:'var(--orange)',full:true},
 ];
 
 function openDetail(id){
@@ -1245,11 +1253,13 @@ function openEditModal(p){
   document.getElementById('f-intervention_intensity').value=p.intervention_intensity||'';
   document.getElementById('f-intervention_exercise').value=p.intervention_exercise||'';
   document.getElementById('f-effect_size').value=p.effect_size||'';
+  document.getElementById('f-conclusion').value=p.conclusion||'';
+  document.getElementById('f-practical_application').value=p.practical_application||'';
   document.getElementById('add-overlay').classList.add('open');
   setTimeout(renderTagAll,50);
 }
 function clearForm(){
-  ['f-title','f-author','f-venue','f-year','f-url','f-category','f-tags','f-quick_note','f-objective','f-subjects','f-protocol','f-outcomes','f-statistics','f-discussion','f-prior_research','f-n_total','f-age','f-training_background','f-intervention_duration','f-intervention_frequency','f-intervention_intensity','f-intervention_exercise','f-effect_size'].forEach(id=>document.getElementById(id).value='');
+  ['f-title','f-author','f-venue','f-year','f-url','f-category','f-tags','f-quick_note','f-objective','f-subjects','f-protocol','f-outcomes','f-statistics','f-discussion','f-prior_research','f-n_total','f-age','f-training_background','f-intervention_duration','f-intervention_frequency','f-intervention_intensity','f-intervention_exercise','f-effect_size','f-conclusion','f-practical_application'].forEach(id=>document.getElementById(id).value='');
   ['f-study_design','f-sex'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('f-status').value='unread';
   document.getElementById('f-lookup-input').value='';
@@ -1263,10 +1273,10 @@ async function savePaper(){
     paper=papers.find(x=>x.id===editId);
     if(paper){
       paper.title=title;paper.author=document.getElementById('f-author').value.trim();paper.venue=document.getElementById('f-venue').value.trim();paper.year=document.getElementById('f-year').value.trim();paper.url=document.getElementById('f-url').value.trim();paper.category=document.getElementById('f-category').value.trim();paper.tags=tags;paper.status=document.getElementById('f-status').value;paper.quick_note=document.getElementById('f-quick_note').value.trim();
-      paper.subjects=document.getElementById('f-subjects').value.trim();paper.protocol=document.getElementById('f-protocol').value.trim();paper.outcomes=document.getElementById('f-outcomes').value.trim();paper.statistics=document.getElementById('f-statistics').value.trim();paper.discussion=document.getElementById('f-discussion').value.trim();paper.prior_research=document.getElementById('f-prior_research').value.trim();paper.objective=document.getElementById('f-objective').value.trim();paper.study_design=document.getElementById('f-study_design').value;paper.n_total=document.getElementById('f-n_total').value.trim();paper.sex=document.getElementById('f-sex').value;paper.age=document.getElementById('f-age').value.trim();paper.training_background=document.getElementById('f-training_background').value.trim();paper.intervention_duration=document.getElementById('f-intervention_duration').value.trim();paper.intervention_frequency=document.getElementById('f-intervention_frequency').value.trim();paper.intervention_intensity=document.getElementById('f-intervention_intensity').value.trim();paper.intervention_exercise=document.getElementById('f-intervention_exercise').value.trim();paper.effect_size=document.getElementById('f-effect_size').value.trim();
+      paper.subjects=document.getElementById('f-subjects').value.trim();paper.protocol=document.getElementById('f-protocol').value.trim();paper.outcomes=document.getElementById('f-outcomes').value.trim();paper.statistics=document.getElementById('f-statistics').value.trim();paper.discussion=document.getElementById('f-discussion').value.trim();paper.prior_research=document.getElementById('f-prior_research').value.trim();paper.objective=document.getElementById('f-objective').value.trim();paper.study_design=document.getElementById('f-study_design').value;paper.n_total=document.getElementById('f-n_total').value.trim();paper.sex=document.getElementById('f-sex').value;paper.age=document.getElementById('f-age').value.trim();paper.training_background=document.getElementById('f-training_background').value.trim();paper.intervention_duration=document.getElementById('f-intervention_duration').value.trim();paper.intervention_frequency=document.getElementById('f-intervention_frequency').value.trim();paper.intervention_intensity=document.getElementById('f-intervention_intensity').value.trim();paper.intervention_exercise=document.getElementById('f-intervention_exercise').value.trim();paper.effect_size=document.getElementById('f-effect_size').value.trim();paper.conclusion=document.getElementById('f-conclusion').value.trim();paper.practical_application=document.getElementById('f-practical_application').value.trim();
     }
   }else{
-    paper={id:Date.now(),title,author:document.getElementById('f-author').value.trim(),venue:document.getElementById('f-venue').value.trim(),year:document.getElementById('f-year').value.trim(),url:document.getElementById('f-url').value.trim(),category:document.getElementById('f-category').value.trim(),tags,status:document.getElementById('f-status').value,quick_note:document.getElementById('f-quick_note').value.trim(),subjects:document.getElementById('f-subjects').value.trim(),protocol:document.getElementById('f-protocol').value.trim(),outcomes:document.getElementById('f-outcomes').value.trim(),statistics:document.getElementById('f-statistics').value.trim(),discussion:document.getElementById('f-discussion').value.trim(),prior_research:document.getElementById('f-prior_research').value.trim(),objective:document.getElementById('f-objective').value.trim(),study_design:document.getElementById('f-study_design').value,n_total:document.getElementById('f-n_total').value.trim(),sex:document.getElementById('f-sex').value,age:document.getElementById('f-age').value.trim(),training_background:document.getElementById('f-training_background').value.trim(),intervention_duration:document.getElementById('f-intervention_duration').value.trim(),intervention_frequency:document.getElementById('f-intervention_frequency').value.trim(),intervention_intensity:document.getElementById('f-intervention_intensity').value.trim(),intervention_exercise:document.getElementById('f-intervention_exercise').value.trim(),effect_size:document.getElementById('f-effect_size').value.trim(),memo:'',created:Date.now(),aiSummary:'',aiKeywords:''};
+    paper={id:Date.now(),title,author:document.getElementById('f-author').value.trim(),venue:document.getElementById('f-venue').value.trim(),year:document.getElementById('f-year').value.trim(),url:document.getElementById('f-url').value.trim(),category:document.getElementById('f-category').value.trim(),tags,status:document.getElementById('f-status').value,quick_note:document.getElementById('f-quick_note').value.trim(),subjects:document.getElementById('f-subjects').value.trim(),protocol:document.getElementById('f-protocol').value.trim(),outcomes:document.getElementById('f-outcomes').value.trim(),statistics:document.getElementById('f-statistics').value.trim(),discussion:document.getElementById('f-discussion').value.trim(),prior_research:document.getElementById('f-prior_research').value.trim(),objective:document.getElementById('f-objective').value.trim(),study_design:document.getElementById('f-study_design').value,n_total:document.getElementById('f-n_total').value.trim(),sex:document.getElementById('f-sex').value,age:document.getElementById('f-age').value.trim(),training_background:document.getElementById('f-training_background').value.trim(),intervention_duration:document.getElementById('f-intervention_duration').value.trim(),intervention_frequency:document.getElementById('f-intervention_frequency').value.trim(),intervention_intensity:document.getElementById('f-intervention_intensity').value.trim(),intervention_exercise:document.getElementById('f-intervention_exercise').value.trim(),effect_size:document.getElementById('f-effect_size').value.trim(),conclusion:document.getElementById('f-conclusion').value.trim(),practical_application:document.getElementById('f-practical_application').value.trim(),memo:'',created:Date.now(),aiSummary:'',aiKeywords:''};
   }
   await save(paper, !editId);
   if(!editId)papers.unshift(paper);
@@ -1275,46 +1285,73 @@ async function savePaper(){
 async function deletePaper(){if(!editId||!confirm('削除しますか？'))return;await deleteSb(editId);papers=papers.filter(p=>p.id!==editId);closeAdd();renderAll();}
 
 /* DASHBOARD */
+function calcStreak(){
+  const doneDates=new Set(papers.filter(p=>p.status==='done').map(p=>{const d=new Date(p.created);return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();}));
+  let streak=0;const today=new Date();
+  for(let i=0;i<365;i++){
+    const d=new Date(today);d.setDate(today.getDate()-i);
+    const key=d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
+    if(doneDates.has(key))streak++;else if(i>0)break;
+  }
+  return streak;
+}
 function renderDash(){
   const db=document.getElementById('dash-body');
+  const now=new Date();
   const total=papers.length,done=papers.filter(p=>p.status==='done').length,reading=papers.filter(p=>p.status==='reading').length,unread=papers.filter(p=>p.status==='unread').length;
   const pct=total?Math.round(done/total*100):0;
-  const now=new Date(),months=[];
+  const streak=calcStreak();
+  const sow=new Date(now);sow.setDate(now.getDate()-now.getDay());sow.setHours(0,0,0,0);
+  const som=new Date(now.getFullYear(),now.getMonth(),1);
+  const thisWeek=papers.filter(p=>p.status==='done'&&p.created>=sow.getTime()).length;
+  const thisMonth=papers.filter(p=>p.status==='done'&&p.created>=som.getTime()).length;
+  const months=[];
   for(let i=11;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);months.push({year:d.getFullYear(),month:d.getMonth(),label:(d.getMonth()+1)+'月',count:0});}
   papers.filter(p=>p.status==='done').forEach(p=>{const d=new Date(p.created);const m=months.find(x=>x.year===d.getFullYear()&&x.month===d.getMonth());if(m)m.count++;});
   const maxM=Math.max(1,...months.map(m=>m.count));
   const catMap={};papers.forEach(p=>{if(p.category)catMap[p.category]=(catMap[p.category]||0)+1;});
-  const cats=Object.entries(catMap).sort((a,b)=>b[1]-a[1]),maxC=Math.max(1,...Object.values(catMap).concat([1]));
+  const cats=Object.entries(catMap).sort((a,b)=>b[1]-a[1]);
+  const maxC=Math.max(1,...Object.values(catMap).concat([1]));
+  const catTotal=Object.values(catMap).reduce((a,b)=>a+b,0)||1;
   const tagMap={};papers.forEach(p=>(p.tags||[]).forEach(t=>{tagMap[t]=(tagMap[t]||0)+1;}));
   const topTags=Object.entries(tagMap).sort((a,b)=>b[1]-a[1]).slice(0,10);
-  db.innerHTML=`
-    <div class="dash-metrics">
-      <div class="metric"><div class="metric-num">${total}</div><div class="metric-lbl">登録論文</div></div>
-      <div class="metric"><div class="metric-num">${done}</div><div class="metric-lbl">読了</div></div>
-      <div class="metric"><div class="metric-num">${reading}</div><div class="metric-lbl">読書中</div></div>
-      <div class="metric"><div class="metric-num">${pct}%</div><div class="metric-lbl">読了率</div></div>
-    </div>
-    <div class="dash-row">
-      <div class="dash-card"><h3>読了状態</h3>
-        <div class="donut-wrap"><svg width="80" height="80" viewBox="0 0 80 80">${donutPaths(done,reading,unread)}</svg>
-          <div class="legend">
-            <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div>読了 ${done}</div>
-            <div class="legend-item"><div class="legend-dot" style="background:var(--blue)"></div>読書中 ${reading}</div>
-            <div class="legend-item"><div class="legend-dot" style="background:var(--yellow)"></div>未読 ${unread}</div>
-          </div>
-        </div>
-      </div>
-      <div class="dash-card"><h3>カテゴリ別</h3>
-        ${cats.slice(0,5).map(([c,n])=>`<div class="bar-row"><div class="bar-label">${esc(c)}</div><div class="bar-track"><div class="bar-fill" style="width:${Math.round(n/maxC*100)}%"></div></div><div class="bar-count">${n}</div></div>`).join('')||'<div style="color:var(--text3);font-size:12px">データなし</div>'}
-      </div>
-    </div>
-    <div class="dash-card"><h3>月別読了数（過去12ヶ月）</h3>
-      <div class="monthly-grid">${months.map(m=>`<div class="month-col"><div class="month-bar" style="height:${Math.round(m.count/maxM*60)+3}px;background:${m.count>0?'var(--accent)':'var(--bg4)'}"></div><div class="month-lbl">${m.label}</div></div>`).join('')}</div>
-    </div>
-    <div class="dash-card"><h3>よく使うタグ</h3>
-      <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:4px">${topTags.map(([t,n])=>`<span style="font-size:11px;padding:3px 9px;border-radius:20px;background:var(--bg3);border:1px solid var(--border);color:var(--text2)">${esc(t)} <strong style="font-weight:600;color:var(--accent)">${n}</strong></span>`).join('')||'<span style="color:var(--text3);font-size:12px">タグなし</span>'}</div>
-    </div>`;
+  const streakIcon=streak===0?'📖':streak<7?'🔥':'⚡';
+  const streakMsg=streak===0?'今日も論文を読もう！':streak<3?'読書習慣をつけよう💪':streak<7?streak+'日連続！調子いいね🔥':streak<30?streak+'日連続！素晴らしい継続力⚡':streak+'日連続達成！研究者の鑑🏆';
+  const avgPerMonth=(done/12).toFixed(1);
+  db.innerHTML=
+    '<div style="background:var(--accent-dim);border:1px solid var(--accent);border-radius:var(--radius-lg);padding:16px 20px;display:flex;align-items:center;gap:16px">'+
+    '<div style="font-size:36px;line-height:1">'+streakIcon+'</div>'+
+    '<div><div style="font-size:28px;font-weight:700;color:var(--accent);letter-spacing:-1px;line-height:1">'+streak+'<span style="font-size:14px;font-weight:400;color:var(--text2);margin-left:4px">日連続</span></div>'+
+    '<div style="font-size:12px;color:var(--text2);margin-top:3px">'+streakMsg+'</div></div>'+
+    '<div style="flex:1"></div>'+
+    '<div style="text-align:center;padding:0 16px;border-left:1px solid var(--border)"><div style="font-size:22px;font-weight:600;color:var(--text1)">'+thisWeek+'</div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px">今週</div></div>'+
+    '<div style="text-align:center;padding:0 16px;border-left:1px solid var(--border)"><div style="font-size:22px;font-weight:600;color:var(--text1)">'+thisMonth+'</div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px">今月</div></div>'+
+    '</div>'+
+    '<div class="dash-metrics">'+
+    '<div class="metric"><div class="metric-num">'+total+'</div><div class="metric-lbl">登録論文</div></div>'+
+    '<div class="metric"><div class="metric-num">'+done+'</div><div class="metric-lbl">読了</div></div>'+
+    '<div class="metric"><div class="metric-num">'+reading+'</div><div class="metric-lbl">読書中</div></div>'+
+    '<div class="metric"><div class="metric-num">'+pct+'%</div><div class="metric-lbl">読了率</div></div>'+
+    '</div>'+
+    '<div class="dash-row">'+
+    '<div class="dash-card"><h3>読了状態</h3><div class="donut-wrap"><svg width="80" height="80" viewBox="0 0 80 80">'+donutPaths(done,reading,unread)+'</svg>'+
+    '<div class="legend"><div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div>読了 '+done+'</div>'+
+    '<div class="legend-item"><div class="legend-dot" style="background:var(--blue)"></div>読書中 '+reading+'</div>'+
+    '<div class="legend-item"><div class="legend-dot" style="background:var(--yellow)"></div>未読 '+unread+'</div></div></div></div>'+
+    '<div class="dash-card"><h3>研究テーマ分布</h3>'+
+    (cats.slice(0,6).map(function(e){var c=e[0],n=e[1];return '<div class="bar-row"><div class="bar-label" title="'+esc(c)+'">'+esc(c)+'</div><div class="bar-track"><div class="bar-fill" style="width:'+Math.round(n/maxC*100)+'%"></div></div><div class="bar-count">'+n+'</div><div style="font-size:10px;color:var(--text3);width:30px;text-align:right">'+Math.round(n/catTotal*100)+'%</div></div>';}).join('')||'<div style="color:var(--text3);font-size:12px">データなし</div>')+
+    '</div></div>'+
+    '<div class="dash-card"><h3>月別読了数（過去12ヶ月）</h3>'+
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'+
+    '<span style="font-size:11px;color:var(--text3)">合計 '+done+' 本読了</span>'+
+    '<span style="font-size:11px;color:var(--text2)">月平均 <strong style="color:var(--accent)">'+avgPerMonth+'</strong> 本</span></div>'+
+    '<div class="monthly-grid">'+months.map(function(m){return '<div class="month-col"><div style="font-size:9px;color:var(--text3);margin-bottom:2px;text-align:center;min-height:12px">'+(m.count||'')+'</div><div class="month-bar" style="height:'+( Math.round(m.count/maxM*60)+3)+'px;background:'+(m.count>0?'var(--accent)':'var(--bg4)')+'"></div><div class="month-lbl">'+m.label+'</div></div>';}).join('')+
+    '</div></div>'+
+    '<div class="dash-card"><h3>よく使うタグ</h3><div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:4px">'+
+    (topTags.map(function(e){var t=e[0],n=e[1];var col=tagColors[t];return '<span style="font-size:11px;padding:3px 9px;border-radius:20px;background:'+(col?col+'18':'var(--bg3)')+';border:1px solid '+(col?col+'66':'var(--border)')+';color:'+(col||'var(--text2)')+'">'+esc(t)+' <strong style="font-weight:600">'+n+'</strong></span>';}).join('')||'<span style="color:var(--text3);font-size:12px">タグなし</span>')+
+    '</div></div>';
 }
+
 function donutPaths(done,reading,unread){
   const total=done+reading+unread;
   if(!total)return`<circle cx="40" cy="40" r="30" fill="none" stroke="var(--bg4)" stroke-width="12"/>`;
