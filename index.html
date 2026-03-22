@@ -216,6 +216,7 @@ textarea.note-input{background:var(--bg4);border-color:var(--border);font-size:1
   <div class="page active" id="page-list">
     <div class="list-body">
       <div class="sidebar">
+        <div id="stats-sb-cards" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:10px 8px 4px"></div>
         <div id="sidebar-inner"></div>
       </div>
       <div class="main-col">
@@ -853,7 +854,15 @@ function renderMatrixTable(list,sl,sc,colF){
   return '<table class="matrix-table" style="min-width:'+minW+'">'+thead+tbody+'</table>';
 }
 function openDetailFromMatrix(id){openDetail(id);}
-function renderStats(){}
+function renderStats(){
+  const total=papers.length,done=papers.filter(p=>p.status==='done').length,reading=papers.filter(p=>p.status==='reading').length,unread=papers.filter(p=>p.status==='unread').length;
+  const el=document.getElementById('stats-sb-cards');if(!el)return;
+  el.innerHTML=
+    '<div class="sb-stat-card"><div class="sb-stat-num">'+total+'</div><div class="sb-stat-lbl">合計</div></div>'+
+    '<div class="sb-stat-card" onclick="setSmartFilter('done')"><div class="sb-stat-num" style="color:var(--accent)">'+done+'</div><div class="sb-stat-lbl">読了</div></div>'+
+    '<div class="sb-stat-card" onclick="setSmartFilter('reading')"><div class="sb-stat-num" style="color:var(--blue)">'+reading+'</div><div class="sb-stat-lbl">読書中</div></div>'+
+    '<div class="sb-stat-card" onclick="setSmartFilter('unread')"><div class="sb-stat-num" style="color:var(--yellow)">'+unread+'</div><div class="sb-stat-lbl">未読</div></div>';
+}
 function renderFilters(){
   const cs=document.getElementById('filter-cat');
   if(!cs)return;
