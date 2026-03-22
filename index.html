@@ -857,11 +857,12 @@ function openDetailFromMatrix(id){openDetail(id);}
 function renderStats(){
   const total=papers.length,done=papers.filter(p=>p.status==='done').length,reading=papers.filter(p=>p.status==='reading').length,unread=papers.filter(p=>p.status==='unread').length;
   const el=document.getElementById('stats-sb-cards');if(!el)return;
+  const mkCard=(num,lbl,col,f)=>`<div class="sb-stat-card" onclick="setSmartFilter('${f}')" style="cursor:${f?'pointer':'default'}"><div class="sb-stat-num" style="${col?'color:'+col:''}">${num}</div><div class="sb-stat-lbl">${lbl}</div></div>`;
   el.innerHTML=
-    '<div class="sb-stat-card"><div class="sb-stat-num">'+total+'</div><div class="sb-stat-lbl">合計</div></div>'+
-    '<div class="sb-stat-card" onclick="setSmartFilter('done')"><div class="sb-stat-num" style="color:var(--accent)">'+done+'</div><div class="sb-stat-lbl">読了</div></div>'+
-    '<div class="sb-stat-card" onclick="setSmartFilter('reading')"><div class="sb-stat-num" style="color:var(--blue)">'+reading+'</div><div class="sb-stat-lbl">読書中</div></div>'+
-    '<div class="sb-stat-card" onclick="setSmartFilter('unread')"><div class="sb-stat-num" style="color:var(--yellow)">'+unread+'</div><div class="sb-stat-lbl">未読</div></div>';
+    mkCard(total,'合計','','')+
+    mkCard(done,'読了','var(--accent)','done')+
+    mkCard(reading,'読書中','var(--blue)','reading')+
+    mkCard(unread,'未読','var(--yellow)','unread');
 }
 function renderFilters(){
   const cs=document.getElementById('filter-cat');
