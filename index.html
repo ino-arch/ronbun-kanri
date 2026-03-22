@@ -841,8 +841,10 @@ function renderMatrixTable(list,sl,sc,colF){
     return '<tr onclick="openDetailFromMatrix('+p.id+')">'+
       '<td class="col-title">'+
       '<div style="font-weight:500;font-size:12px;line-height:1.45;margin-bottom:5px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">'+esc(p.title)+'</div>'+
-      '<div style="font-size:10px;color:var(--text3);margin-bottom:6px">'+esc([p.author,p.year].filter(Boolean).join(' · '))+'</div>'+
+      '<div style="font-size:10px;color:var(--text3);margin-bottom:5px">'+esc([p.author,p.year].filter(Boolean).join(' · '))+'</div>'+
+      '<div style="display:flex;align-items:center;gap:6px">'+
       '<span class="sb '+sc[p.status]+'" style="font-size:10px">'+sl[p.status]+'</span>'+
+      (p.relevance?'<span style="color:var(--yellow);font-size:11px;letter-spacing:1px">'+'★'.repeat(p.relevance)+'</span>':'')+'</div>'+
       '</td>'+tds+'</tr>';
   }).join('')+'</tbody>';
   return '<table class="matrix-table" style="min-width:'+minW+'">'+thead+tbody+'</table>';
@@ -880,13 +882,15 @@ function renderList(){
 /* NOTE BLOCKS CONFIG */
 const NOTE_BLOCKS=[
   {key:'objective',label:'目的・研究課題',color:'var(--purple)',full:true},
-  {key:'subjects',label:'対象者・参加者',color:'var(--blue)'},
-  {key:'protocol',label:'介入プロトコル',color:'var(--purple)'},
-  {key:'outcomes',label:'主な結果・アウトカム',color:'var(--accent)'},
-  {key:'statistics',label:'統計解析',color:'var(--yellow)'},
+  {key:'_subjects_detail',label:'対象者',color:'var(--blue)',full:true,custom:true},
+  {key:'_protocol_detail',label:'介入プロトコル',color:'var(--purple)',full:true,custom:true},
+  {key:'outcomes',label:'主な結果・アウトカム',color:'var(--accent)',full:true},
+  {key:'_stats_detail',label:'統計・効果量',color:'var(--yellow)',full:true,custom:true},
   {key:'conclusion',label:'結論',color:'var(--accent)',full:true},
   {key:'practical_application',label:'現場への応用・実用的示唆',color:'var(--accent2)',full:true},
   {key:'discussion',label:'考察・限界',color:'var(--orange)',full:true},
+  {key:'quick_note',label:'一言メモ',color:'var(--text2)'},
+  {key:'prior_research',label:'先行研究としての活用メモ',color:'var(--accent)',full:true},
 ];
 
 function openDetail(id){
