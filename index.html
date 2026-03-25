@@ -188,6 +188,28 @@ textarea.note-input{background:var(--bg4);border-color:var(--border);font-size:1
   .dash-row{grid-template-columns:1fr}
   .notes-grid{grid-template-columns:1fr}
 }
+
+/* STATS CARDS */
+.sb-stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:8px 10px;text-align:center;cursor:pointer;transition:border-color 0.12s}
+.sb-stat-card:hover{border-color:var(--border2)}
+.sb-stat-num{font-size:20px;font-weight:600;color:var(--text1);line-height:1}
+.sb-stat-lbl{font-size:10px;color:var(--text3);margin-top:3px;letter-spacing:0.3px}
+
+/* PAPER LINKS */
+.link-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:8px 12px;margin-bottom:6px;display:flex;align-items:flex-start;gap:8px;transition:border-color 0.12s}
+.link-card:hover{border-color:var(--border2);cursor:pointer}
+.link-type-badge{font-size:10px;padding:2px 7px;border-radius:20px;font-weight:500;flex-shrink:0;white-space:nowrap}
+.link-type-cites{background:var(--blue-dim);color:var(--blue)}
+.link-type-cited{background:var(--purple-dim);color:var(--purple)}
+.link-type-related{background:var(--accent-dim);color:var(--accent)}
+.link-type-contrast{background:var(--orange-dim);color:var(--orange)}
+
+/* TEMPLATES */
+.tpl-item{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:var(--radius);cursor:pointer;transition:background 0.1s}
+.tpl-item:hover{background:var(--bg3)}
+.tpl-name{font-size:12px;color:var(--text1);flex:1}
+.tpl-del{background:none;border:none;color:var(--text3);cursor:pointer;font-size:12px;padding:0 3px}
+.tpl-del:hover{color:var(--red)}
 </style>
 </head>
 <body>
@@ -797,26 +819,28 @@ function renderTagManager(){
   const allTags=[...new Set(papers.flatMap(p=>p.tags||[]))].sort();
   const el=document.getElementById('tag-mgr-body');
   document.getElementById('tag-mgr-count').textContent=allTags.length+' 件のタグ';
-  const PALETTE=['#6ee7b7','#60a5fa','#a78bfa','#fbbf24','#fb923c','#f87171','#34d399','#38bdf8','#e879f9','#facc15','#4ade80','#f472b6','#94a3b8','#c084fc','#fb7185'];
+  const PALETTE=['#6ee7b7','#60a5fa','#a78bfa','#fbbf24','#fb923c','#f87171','#34d399','#38bdf8','#e879f9'];
   if(!allTags.length){el.innerHTML='<div style="color:var(--text3);font-size:13px;padding:20px">論文を登録するとタグが表示されます</div>';return;}
-  el.innerHTML=allTags.map(tag=>{
+  el.innerHTML=allTags.map((tag,idx)=>{
     const cnt=papers.filter(p=>(p.tags||[]).includes(tag)).length;
     const cur=tagColors[tag]||'';
-    const swatchStyle=cur?`background:${cur};border-color:${cur}`:'background:var(--bg4);border-color:var(--border)';
-    return `<div class="tag-color-card">
-      <div class="color-picker-wrap">
-        <input type="color" value="${cur||'#6ee7b7'}" title="色を選択" style="width:28px;height:28px;border-radius:6px;cursor:pointer;border:none;padding:2px;background:var(--bg3)"
-          onchange="saveTagColor('${tag.replace(/'/g,"\'")}',this.value)">
-      </div>
-      <div>
-        <div class="tag-color-name">${esc(tag)}</div>
-        <div class="tag-color-count">${cnt} 件の論文</div>
-      </div>
-      <div style="display:flex;gap:3px;flex-wrap:wrap;max-width:80px">
-        ${PALETTE.slice(0,5).map(c=>`<div style="width:14px;height:14px;border-radius:3px;background:${c};cursor:pointer" onclick="saveTagColor('${tag.replace(/'/g,"\'")}','${c}')"></div>`).join('')}
-      </div>
-    </div>`;
+    const chips=PALETTE.slice(0,5).map((c,ci)=>'<div data-tag-idx="'+idx+'" data-color="'+c+'" style="width:14px;height:14px;border-radius:3px;background:'+c+';cursor:pointer" onclick="saveTagColorByIdx(this)"></div>').join('');
+    return '<div class="tag-color-card" data-tag="'+esc(tag)+'">'+
+      '<div style="position:relative">'+
+      '<input type="color" value="'+(cur||'#6ee7b7')+'" title="色を選択" data-tag-idx="'+idx+'" style="width:28px;height:28px;border-radius:6px;cursor:pointer;border:none;padding:2px;background:var(--bg3)" onchange="saveTagColorByIdx(this)">'+
+      '</div>'+
+      '<div><div class="tag-color-name">'+esc(tag)+'</div><div class="tag-color-count">'+cnt+' 件の論文</div></div>'+
+      '<div style="display:flex;gap:3px;flex-wrap:wrap;max-width:80px">'+chips+'</div>'+
+      '</div>';
   }).join('');
+  // store tag list for index lookup
+  window._tagMgrList=allTags;
+}
+function saveTagColorByIdx(el){
+  const idx=parseInt(el.dataset.tagIdx);
+  const color=el.dataset.color||el.value;
+  const tag=window._tagMgrList[idx];
+  if(tag)saveTagColor(tag,color);
 }
 function renderMatrix(){
   const cats=[...new Set(papers.map(p=>p.category).filter(Boolean))].sort();
@@ -960,7 +984,7 @@ function openDetail(id){
   document.getElementById('d-meta').textContent=[p.author,p.venue,p.year].filter(Boolean).join(' · ');
   const sc={unread:'s-unread',reading:'s-reading',done:'s-done'}[p.status];
   const sl={unread:'未読',reading:'読書中',done:'読了'}[p.status];
-  document.getElementById('d-tags').innerHTML=`<span class="sb ${sc}">${sl}</span>${(p.tags||[]).map(t=>`<span class="tg">${esc(t)}</span>`).join('')}${p.category?`<span class="tg">${esc(p.category)}</span>`:''}`;
+  document.getElementById('d-tags').innerHTML='<span class="sb '+sc+'">'+ sl+'</span>'+(p.tags||[]).map(t=>'<span class="tg" style="'+getTagStyle(t)+'">'+esc(t)+'</span>').join('')+(p.category?'<span class="tg">'+esc(p.category)+'</span>':'');
 
   // quick note
   const qw=document.getElementById('d-quick-note-wrap');
@@ -1117,7 +1141,17 @@ async function runRec(){
     if(!text)return;
     let recs=[];try{recs=JSON.parse(text.replace(/```json|```/g,'').trim());}catch(e){}
     if(!recs.length){ra.innerHTML='<div style="font-size:12px;color:var(--text3);padding:6px 0">関連論文が見つかりませんでした。</div>';return;}
-    ra.innerHTML=recs.map(r=>{const found=papers.find(x=>x.title===r.title);return `<div class="rec-card" onclick="${found?`openRecPaper(${found.id})`:''}" style="${!found?'cursor:default':''}"><div class="rec-title">${esc(r.title)}</div><div class="rec-reason">${esc(r.reason)}</div>${found?`<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:5px">${(found.tags||[]).map(t=>`<span class="tg">${esc(t)}</span>`).join('')}</div>`:''}</div>`;}).join('');
+    ra.innerHTML=recs.map(r=>{
+      const found=papers.find(x=>x.title===r.title);
+      const onclick=found?'openRecPaper('+found.id+')':'';
+      const style=found?'':'cursor:default';
+      const tags=found?(found.tags||[]).map(t=>'<span class="tg">'+esc(t)+'</span>').join(''):'';
+      return '<div class="rec-card"'+(onclick?' onclick="'+onclick+'"':'')+' style="'+style+'">'+
+        '<div class="rec-title">'+esc(r.title)+'</div>'+
+        '<div class="rec-reason">'+esc(r.reason)+'</div>'+
+        (tags?'<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:5px">'+tags+'</div>':'')+
+        '</div>';
+    }).join('');
   }catch(e){ra.innerHTML=`<div style="font-size:12px;color:var(--red);padding:6px 0">${esc(e.message)}</div>`;}
 }
 function openRecPaper(id){closeDetail();setTimeout(()=>openDetail(id),100);}
@@ -1198,8 +1232,8 @@ function renderTemplateList(){
   const html='<div style="font-size:10px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">テンプレートを挿入</div>'+
     (memoTemplates.length?memoTemplates.map(t=>
       '<div class="tpl-item">'+
-      '<div class="tpl-name" onclick="applyTemplate(''+t.id+'')">'+esc(t.name)+'</div>'+
-      '<button class="tpl-del" onclick="deleteMemoTemplate('+t.id+')">✕</button>'+
+      '<div class="tpl-name" data-tpl-id="'+t.id+'" onclick="applyTemplateById(this)">'+esc(t.name)+'</div>'+
+      '<button class="tpl-del" data-tpl-id="'+t.id+'" onclick="deleteMemoTemplateById(this)">✕</button>'+
       '</div>'
     ).join(''):'<div style="font-size:12px;color:var(--text3)">テンプレートなし</div>')+
     '<div style="border-top:1px solid var(--border);margin-top:8px;padding-top:8px;display:flex;gap:6px">'+
@@ -1209,6 +1243,8 @@ function renderTemplateList(){
   if(p)p.innerHTML=html;
   if(fsPanel)fsPanel.innerHTML=html;
 }
+function applyTemplateById(el){applyTemplate(parseInt(el.dataset.tplId));}
+function deleteMemoTemplateById(el){deleteMemoTemplate(parseInt(el.dataset.tplId));}
 function applyTemplate(id){
   const t=memoTemplates.find(x=>x.id===id);if(!t)return;
   const ed=document.getElementById('rich-editor');
