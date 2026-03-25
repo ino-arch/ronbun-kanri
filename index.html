@@ -229,6 +229,7 @@ textarea.note-input{background:var(--bg4);border-color:var(--border);font-size:1
     <button class="nav-tab" onclick="showPage('dash',this)">ダッシュボード</button>
     <button class="nav-tab" onclick="showPage('matrix',this)">比較表</button>
     <button class="nav-tab" onclick="showPage('tags',this)">タグ管理</button>
+    <button class="nav-tab" onclick="showPage('map',this)">論文マップ</button>
     <div class="nav-spacer"></div>
     <span class="sync-dot"></span><span class="sync-label">クラウド同期</span>
     <button class="btn-add" onclick="openAdd()" style="margin-left:12px">+ 追加</button>
@@ -256,6 +257,34 @@ textarea.note-input{background:var(--bg4);border-color:var(--border);font-size:1
   <!-- DASHBOARD PAGE -->
   <div class="page" id="page-dash">
     <div class="dash-body" id="dash-body"></div>
+  </div>
+
+  <!-- MAP PAGE -->
+  <div class="page" id="page-map">
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--border);background:var(--bg1);flex-shrink:0;flex-wrap:wrap">
+      <select id="map-x-axis" onchange="renderPaperMap()" style="width:120px;background:var(--bg2)">
+        <option value="year">X軸: 年</option>
+        <option value="relevance">X軸: 関連度</option>
+        <option value="citation_count">X軸: 被引用数</option>
+      </select>
+      <select id="map-y-axis" onchange="renderPaperMap()" style="width:120px;background:var(--bg2)">
+        <option value="relevance">Y軸: 関連度</option>
+        <option value="year">Y軸: 年</option>
+        <option value="citation_count">Y軸: 被引用数</option>
+      </select>
+      <select id="map-color" onchange="renderPaperMap()" style="width:130px;background:var(--bg2)">
+        <option value="category">色: カテゴリ</option>
+        <option value="status">色: 読了状態</option>
+        <option value="study_design">色: 研究デザイン</option>
+      </select>
+      <button class="btn" onclick="fetchAllSemanticScholar()" style="font-size:11px;color:var(--blue);border-color:var(--blue-dim)">📡 被引用数を一括取得</button>
+      <div style="flex:1"></div>
+      <span style="font-size:11px;color:var(--text3)" id="map-count"></span>
+    </div>
+    <div style="flex:1;overflow:hidden;position:relative" id="map-container">
+      <canvas id="map-canvas" style="width:100%;height:100%"></canvas>
+      <div id="map-tooltip" style="display:none;position:absolute;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:8px 12px;font-size:12px;pointer-events:none;max-width:240px;z-index:10"></div>
+    </div>
   </div>
 
   <!-- TAG MANAGER PAGE -->
@@ -435,7 +464,8 @@ textarea.note-input{background:var(--bg4);border-color:var(--border);font-size:1
       <button id="d-star-btn" onclick="toggleStarDetail()" style="background:none;border:none;font-size:20px;cursor:pointer;padding:0 6px;color:var(--text3)">☆</button>
       <button class="btn" onclick="closeDetail()" style="flex-shrink:0;padding:3px 10px">✕</button>
     </div>
-    <div style="font-size:11px;color:var(--text3);margin-bottom:10px" id="d-meta"></div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:6px" id="d-meta"></div>
+    <div id="d-scholar-info" style="display:none;margin-bottom:10px"></div>
     <div class="meta-row" id="d-tags"></div>
 
     <!-- quick note -->
@@ -564,14 +594,14 @@ function toRow(p){
     url:p.url||'',category:p.category||'',tags:p.tags||[],status:p.status||'unread',
     memo:p.memo||'',ai_summary:p.aiSummary||'',ai_keywords:p.aiKeywords||'',created:p.created,
     subjects:p.subjects||'',protocol:p.protocol||'',outcomes:p.outcomes||'',
-    statistics:p.statistics||'',discussion:p.discussion||'',quick_note:p.quick_note||'',prior_research:p.prior_research||'',rich_memo:p.rich_memo||'',starred:p.starred||false,objective:p.objective||'',study_design:p.study_design||'',n_total:p.n_total||'',sex:p.sex||'',age:p.age||'',training_background:p.training_background||'',intervention_duration:p.intervention_duration||'',intervention_frequency:p.intervention_frequency||'',intervention_intensity:p.intervention_intensity||'',intervention_exercise:p.intervention_exercise||'',effect_size:p.effect_size||'',conclusion:p.conclusion||'',practical_application:p.practical_application||'',relevance:p.relevance||0,groups:p.groups||''};
+    statistics:p.statistics||'',discussion:p.discussion||'',quick_note:p.quick_note||'',prior_research:p.prior_research||'',rich_memo:p.rich_memo||'',starred:p.starred||false,objective:p.objective||'',study_design:p.study_design||'',n_total:p.n_total||'',sex:p.sex||'',age:p.age||'',training_background:p.training_background||'',intervention_duration:p.intervention_duration||'',intervention_frequency:p.intervention_frequency||'',intervention_intensity:p.intervention_intensity||'',intervention_exercise:p.intervention_exercise||'',effect_size:p.effect_size||'',conclusion:p.conclusion||'',practical_application:p.practical_application||'',relevance:p.relevance||0,groups:p.groups||'',citation_count:p.citation_count||null,semantic_scholar_id:p.semantic_scholar_id||'',influence_score:p.influence_score||null};
 }
 function fromRow(r){
   return {id:r.id,title:r.title,author:r.author,venue:r.venue,year:r.year,url:r.url,
     category:r.category,tags:r.tags||[],status:r.status,memo:r.memo||'',
     aiSummary:r.ai_summary||'',aiKeywords:r.ai_keywords||'',created:r.created,
     subjects:r.subjects||'',protocol:r.protocol||'',outcomes:r.outcomes||'',
-    statistics:r.statistics||'',discussion:r.discussion||'',quick_note:r.quick_note||'',prior_research:r.prior_research||'',rich_memo:r.rich_memo||'',starred:r.starred||false,objective:r.objective||'',study_design:r.study_design||'',n_total:r.n_total||'',sex:r.sex||'',age:r.age||'',training_background:r.training_background||'',intervention_duration:r.intervention_duration||'',intervention_frequency:r.intervention_frequency||'',intervention_intensity:r.intervention_intensity||'',intervention_exercise:r.intervention_exercise||'',effect_size:r.effect_size||'',conclusion:r.conclusion||'',practical_application:r.practical_application||'',relevance:r.relevance||0,groups:r.groups||''};
+    statistics:r.statistics||'',discussion:r.discussion||'',quick_note:r.quick_note||'',prior_research:r.prior_research||'',rich_memo:r.rich_memo||'',starred:r.starred||false,objective:r.objective||'',study_design:r.study_design||'',n_total:r.n_total||'',sex:r.sex||'',age:r.age||'',training_background:r.training_background||'',intervention_duration:r.intervention_duration||'',intervention_frequency:r.intervention_frequency||'',intervention_intensity:r.intervention_intensity||'',intervention_exercise:r.intervention_exercise||'',effect_size:r.effect_size||'',conclusion:r.conclusion||'',practical_application:r.practical_application||'',relevance:r.relevance||0,groups:r.groups||'',citation_count:r.citation_count||null,semantic_scholar_id:r.semantic_scholar_id||'',influence_score:r.influence_score||null};
 }
 
 let papers=[],selId=null,editId=null,activeTag=null,apiKey='';
@@ -794,6 +824,7 @@ function showPage(name,btn){
   if(name==='dash')renderDash();
   if(name==='matrix')renderMatrix();
   if(name==='tags')renderTagManager();
+  if(name==='map')renderPaperMap();
 }
 
 function getFiltered(){
@@ -957,7 +988,7 @@ function renderList(){
         <span class="sb ${sc}">${sl}</span>
       </div>
       <div class="pm">${esc([p.author,p.venue,p.year].filter(Boolean).join(' · '))}</div>
-      <div class="pt-row">${tags}${p.study_design?`<span class="tg" style="color:var(--purple);border-color:var(--purple-dim);background:var(--purple-dim)">${esc(p.study_design)}</span>`:''} ${p.url?'<span class="pdf-badge">PDF</span>':''}</div>
+      <div class="pt-row">${tags}${p.citation_count!=null?`<span class="tg" style="color:var(--blue);border-color:var(--blue-dim)">引用 ${p.citation_count}</span>`:''} ${p.study_design?`<span class="tg" style="color:var(--purple);border-color:var(--purple-dim);background:var(--purple-dim)">${esc(p.study_design)}</span>`:''} ${p.url?'<span class="pdf-badge">PDF</span>':''}</div>
       ${p.relevance?'<div style="display:flex;gap:1px;margin-top:3px">'+'<span style="font-size:10px;color:var(--yellow)">★</span>'.repeat(p.relevance)+'<span style="font-size:10px;color:var(--text3)">★</span>'.repeat(5-p.relevance)+'</div>':''}
       ${p.quick_note?`<div class="pnp">${esc(p.quick_note)}</div>`:''}
     </div>`;
@@ -982,6 +1013,14 @@ function openDetail(id){
   selId=id;const p=papers.find(x=>x.id===id);if(!p)return;
   document.getElementById('d-title').textContent=p.title;
   document.getElementById('d-meta').textContent=[p.author,p.venue,p.year].filter(Boolean).join(' · ');
+  const si=document.getElementById('d-scholar-info');
+  if(p.citation_count!=null){
+    si.style.display='flex';si.style.gap='12px';si.style.alignItems='center';
+    si.innerHTML='<span style="font-size:12px;color:var(--text3)">被引用数</span><strong style="color:var(--blue)">'+(p.citation_count||0)+'</strong>'+
+      (p.influence_score?'<span style="font-size:12px;color:var(--text3);margin-left:8px">影響力スコア</span><strong style="color:var(--yellow)">'+parseFloat(p.influence_score).toFixed(2)+'</strong>':'');
+  }else{
+    si.style.display='none';
+  }
   const sc={unread:'s-unread',reading:'s-reading',done:'s-done'}[p.status];
   const sl={unread:'未読',reading:'読書中',done:'読了'}[p.status];
   document.getElementById('d-tags').innerHTML='<span class="sb '+sc+'">'+ sl+'</span>'+(p.tags||[]).map(t=>'<span class="tg" style="'+getTagStyle(t)+'">'+esc(t)+'</span>').join('')+(p.category?'<span class="tg">'+esc(p.category)+'</span>':'');
@@ -1660,7 +1699,204 @@ function donutPaths(done,reading,unread){
   return paths+`<circle cx="40" cy="40" r="18" fill="var(--bg2)"/>`;
 }
 
+
+/* SEMANTIC SCHOLAR */
+async function fetchSemanticScholar(p){
+  try{
+    let url='';
+    if(p.semantic_scholar_id){
+      url='https://api.semanticscholar.org/graph/v1/paper/'+p.semantic_scholar_id+'?fields=citationCount,influentialCitationCount';
+    }else if(p.url&&p.url.includes('doi.org')){
+      const doi=p.url.replace(/^https?:\/\/(dx\.)?doi\.org\//i,'');
+      url='https://api.semanticscholar.org/graph/v1/paper/DOI:'+encodeURIComponent(doi)+'?fields=citationCount,influentialCitationCount,externalIds';
+    }else if(p.title){
+      const res=await fetch('https://api.semanticscholar.org/graph/v1/paper/search?query='+encodeURIComponent(p.title)+'&fields=citationCount,influentialCitationCount,externalIds&limit=1');
+      if(!res.ok)return false;
+      const data=await res.json();
+      const paper=data.data?.[0];
+      if(!paper)return false;
+      p.citation_count=paper.citationCount||0;
+      p.influence_score=paper.influentialCitationCount||0;
+      p.semantic_scholar_id=paper.paperId||'';
+      await save(p,false);
+      return true;
+    }
+    if(!url)return false;
+    const res=await fetch(url);
+    if(!res.ok)return false;
+    const data=await res.json();
+    p.citation_count=data.citationCount||0;
+    p.influence_score=data.influentialCitationCount||0;
+    if(data.externalIds?.DOI&&!p.semantic_scholar_id)p.semantic_scholar_id=data.paperId||'';
+    await save(p,false);
+    return true;
+  }catch(e){console.error('Semantic Scholar error:',e);return false;}
+}
+async function fetchAllSemanticScholar(){
+  const btn=document.querySelector('[onclick="fetchAllSemanticScholar()"]');
+  if(btn){btn.disabled=true;btn.textContent='取得中...';}
+  let ok=0,fail=0;
+  for(const p of papers){
+    const success=await fetchSemanticScholar(p);
+    if(success)ok++;else fail++;
+    await new Promise(r=>setTimeout(r,200));
+  }
+  if(btn){btn.disabled=false;btn.textContent='📡 被引用数を一括取得';}
+  alert('完了: '+ok+'件取得, '+fail+'件スキップ');
+  renderAll();renderPaperMap();
+}
+
+/* PAPER MAP */
+let mapPapers=[],mapDragging=false,mapOffX=0,mapOffY=0,mapScale=1,mapLastX=0,mapLastY=0;
+const MAP_COLORS=['#6ee7b7','#60a5fa','#a78bfa','#fb923c','#f87171','#fbbf24','#34d399','#38bdf8','#e879f9','#4ade80'];
+
+function renderPaperMap(){
+  const container=document.getElementById('map-container');
+  const canvas=document.getElementById('map-canvas');
+  if(!canvas||!container)return;
+  const xKey=document.getElementById('map-x-axis').value;
+  const yKey=document.getElementById('map-y-axis').value;
+  const colorKey=document.getElementById('map-color').value;
+
+  // Filter papers that have both axes
+  const valid=papers.filter(p=>{
+    const xv=getMapVal(p,xKey),yv=getMapVal(p,yKey);
+    return xv!=null&&yv!=null;
+  });
+  document.getElementById('map-count').textContent=valid.length+' 件表示';
+
+  const W=container.clientWidth||800;
+  const H=container.clientHeight||500;
+  canvas.width=W;canvas.height=H;
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,W,H);
+
+  if(!valid.length){
+    ctx.fillStyle='#606070';ctx.font='14px Inter,sans-serif';
+    ctx.textAlign='center';ctx.fillText('表示できるデータがありません',W/2,H/2);
+    return;
+  }
+
+  const xs=valid.map(p=>getMapVal(p,xKey));
+  const ys=valid.map(p=>getMapVal(p,yKey));
+  const xMin=Math.min(...xs),xMax=Math.max(...xs);
+  const yMin=Math.min(...ys),yMax=Math.max(...ys);
+  const pad=60;
+
+  function toCanvasX(v){return pad+(v-xMin)/(xMax-xMin||1)*(W-pad*2);}
+  function toCanvasY(v){return H-pad-(v-yMin)/(yMax-yMin||1)*(H-pad*2);}
+
+  // Color map
+  const colorVals=[...new Set(papers.map(p=>p[colorKey]||'').filter(Boolean))];
+  const colorMap={};
+  colorVals.forEach((v,i)=>{colorMap[v]=MAP_COLORS[i%MAP_COLORS.length];});
+
+  // Draw grid
+  ctx.strokeStyle='#2e2e38';ctx.lineWidth=1;
+  for(let i=0;i<=5;i++){
+    const x=pad+(W-pad*2)/5*i;
+    const y=pad+(H-pad*2)/5*i;
+    ctx.beginPath();ctx.moveTo(x,pad);ctx.lineTo(x,H-pad);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(W-pad,y);ctx.stroke();
+  }
+
+  // Axis labels
+  ctx.fillStyle='#606070';ctx.font='11px Inter,sans-serif';ctx.textAlign='center';
+  const xLabel={year:'年',relevance:'関連度',citation_count:'被引用数'}[xKey]||xKey;
+  const yLabel={year:'年',relevance:'関連度',citation_count:'被引用数'}[yKey]||yKey;
+  ctx.fillText(xLabel,W/2,H-10);
+  ctx.save();ctx.translate(14,H/2);ctx.rotate(-Math.PI/2);ctx.fillText(yLabel,0,0);ctx.restore();
+
+  // Axis values
+  ctx.font='10px Inter,sans-serif';
+  [0,0.5,1].forEach(t=>{
+    const xv=Math.round(xMin+(xMax-xMin)*t);
+    const yv=Math.round(yMin+(yMax-yMin)*t);
+    ctx.textAlign='center';ctx.fillText(xv,pad+(W-pad*2)*t,H-pad+16);
+    ctx.textAlign='right';ctx.fillText(yv,pad-6,H-pad-(H-pad*2)*t+4);
+  });
+
+  // Draw bubbles
+  const citations=valid.map(p=>p.citation_count||0);
+  const maxCit=Math.max(1,...citations);
+  mapPapers=[];
+  valid.forEach(p=>{
+    const cx=toCanvasX(getMapVal(p,xKey));
+    const cy=toCanvasY(getMapVal(p,yKey));
+    const r=6+Math.sqrt((p.citation_count||0)/maxCit)*16;
+    const col=colorMap[p[colorKey]||'']||'#6ee7b7';
+    ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);
+    ctx.fillStyle=col+'99';ctx.fill();
+    ctx.strokeStyle=col;ctx.lineWidth=1.5;ctx.stroke();
+    mapPapers.push({p,cx,cy,r});
+  });
+
+  // Legend
+  let lx=W-pad;let ly=pad;
+  colorVals.slice(0,8).forEach(v=>{
+    ctx.fillStyle=colorMap[v];ctx.beginPath();ctx.arc(lx-6,ly,5,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#a0a0b0';ctx.font='10px Inter,sans-serif';ctx.textAlign='right';
+    ctx.fillText(v.length>12?v.slice(0,12)+'…':v,lx-14,ly+4);
+    ly+=18;
+  });
+}
+
+function getMapVal(p,key){
+  if(key==='year')return p.year?parseInt(p.year):null;
+  if(key==='relevance')return p.relevance||0;
+  if(key==='citation_count')return p.citation_count!=null?p.citation_count:null;
+  return null;
+}
+
+function initMapEvents(){
+  const canvas=document.getElementById('map-canvas');
+  const tooltip=document.getElementById('map-tooltip');
+  if(!canvas)return;
+  canvas.addEventListener('mousemove',e=>{
+    const rect=canvas.getBoundingClientRect();
+    const mx=(e.clientX-rect.left)*(canvas.width/rect.width);
+    const my=(e.clientY-rect.top)*(canvas.height/rect.height);
+    let hit=null;
+    for(const m of mapPapers){
+      const dx=mx-m.cx,dy=my-m.cy;
+      if(Math.sqrt(dx*dx+dy*dy)<=m.r+4){hit=m;break;}
+    }
+    if(hit){
+      tooltip.style.display='block';
+      tooltip.style.left=(e.clientX-rect.left+12)+'px';
+      tooltip.style.top=(e.clientY-rect.top-10)+'px';
+      const p=hit.p;
+      tooltip.innerHTML='<strong style="font-size:12px;line-height:1.4;display:block;margin-bottom:4px">'+esc(p.title.slice(0,60))+(p.title.length>60?'…':'')+'</strong>'+
+        '<span style="color:#606070">'+[p.author,p.year].filter(Boolean).join(' · ')+'</span>'+
+        (p.citation_count!=null?'<br><span style="color:#60a5fa">引用 '+p.citation_count+'件</span>':'')+
+        (p.relevance?'<br><span style="color:#fbbf24">'+'★'.repeat(p.relevance)+'</span>':'');
+      canvas.style.cursor='pointer';
+    }else{
+      tooltip.style.display='none';
+      canvas.style.cursor='default';
+    }
+  });
+  canvas.addEventListener('mouseleave',()=>{tooltip.style.display='none';});
+  canvas.addEventListener('click',e=>{
+    const rect=canvas.getBoundingClientRect();
+    const mx=(e.clientX-rect.left)*(canvas.width/rect.width);
+    const my=(e.clientY-rect.top)*(canvas.height/rect.height);
+    for(const m of mapPapers){
+      const dx=mx-m.cx,dy=my-m.cy;
+      if(Math.sqrt(dx*dx+dy*dy)<=m.r+4){
+        showPage('list',document.querySelector('[onclick*="showPage(\'list\'"]'));
+        setTimeout(()=>openDetail(m.p.id),100);
+        return;
+      }
+    }
+  });
+  window.addEventListener('resize',()=>{
+    if(document.getElementById('page-map').classList.contains('active'))renderPaperMap();
+  });
+}
+
 launch();
+initMapEvents();
 </script>
 
 <!-- FULLSCREEN MEMO MODAL -->
