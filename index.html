@@ -307,7 +307,11 @@ textarea.note-input{background:var(--bg4);border-color:var(--border);font-size:1
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <div class="fr" style="grid-column:1/-1"><label>タイトル *</label><input id="f-title" type="text" placeholder="論文タイトル"></div>
+      <div class="fr" style="grid-column:1/-1">
+        <label>タイトル *</label>
+        <input id="f-title" type="text" placeholder="論文タイトル" oninput="checkDuplicate()" autocomplete="off">
+        <div id="duplicate-warning" style="display:none;margin-top:6px"></div>
+      </div>
       <div class="fr"><label>著者</label><input id="f-author" type="text" placeholder="著者名"></div>
       <div class="fr"><label>雑誌・会議名</label><input id="f-venue" type="text" placeholder="J Strength Cond Res など"></div>
       <div class="fr"><label>年</label><input id="f-year" type="text" placeholder="2024"></div>
@@ -1171,6 +1175,7 @@ function fillFields(info){
   if(info.category&&!document.getElementById('f-category').value)document.getElementById('f-category').value=info.category;
   if(info.tags&&!document.getElementById('f-tags').value)document.getElementById('f-tags').value=info.tags;
   if(info.memo&&!document.getElementById('f-quick_note').value)document.getElementById('f-quick_note').value=info.memo;
+  if(info.title)checkDuplicate();
 }
 async function fetchLookup(){
   const raw=document.getElementById('f-lookup-input').value.trim();
@@ -1224,6 +1229,41 @@ async function setRelevanceDetail(v){
     '<span onclick="setRelevanceDetail('+i+')" style="cursor:pointer;font-size:18px;color:'+(i<=p.relevance?'var(--yellow)':'var(--text3)')+'">★</span>'
   ).join('');
   renderList();
+}
+
+/* DUPLICATE CHECK */
+function similarity(a, b){
+  a=a.toLowerCase().replace(/[^a-z0-9぀-鿿]/g,' ').trim();
+  b=b.toLowerCase().replace(/[^a-z0-9぀-鿿]/g,' ').trim();
+  if(!a||!b)return 0;
+  const wa=new Set(a.split(/\s+/));
+  const wb=new Set(b.split(/\s+/));
+  const inter=[...wa].filter(w=>wb.has(w)&&w.length>1).length;
+  const union=new Set([...wa,...wb]).size;
+  return union?inter/union:0;
+}
+function checkDuplicate(){
+  if(editId)return; // 編集中はチェックしない
+  const title=document.getElementById('f-title').value.trim();
+  const warn=document.getElementById('duplicate-warning');
+  if(title.length<4){warn.style.display='none';return;}
+  const matches=papers
+    .map(p=>({p,score:similarity(title,p.title)}))
+    .filter(x=>x.score>0.4)
+    .sort((a,b)=>b.score-a.score)
+    .slice(0,3);
+  if(!matches.length){warn.style.display='none';return;}
+  warn.style.display='block';
+  warn.innerHTML='<div style="background:var(--yellow-dim);border:1px solid var(--yellow);border-radius:var(--radius);padding:10px 12px">'+
+    '<div style="font-size:11px;font-weight:500;color:var(--yellow);margin-bottom:6px">⚠️ 似た論文が登録されています</div>'+
+    matches.map(({p,score})=>
+      '<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid rgba(251,191,36,0.2);cursor:pointer" onclick="closeAdd();openDetail('+p.id+')">'+
+      '<div style="flex:1;font-size:12px;color:var(--text1);overflow:hidden;white-space:nowrap;text-overflow:ellipsis">'+esc(p.title)+'</div>'+
+      '<div style="font-size:10px;color:var(--yellow);flex-shrink:0">一致度 '+Math.round(score*100)+'%</div>'+
+      '</div>'
+    ).join('')+
+    '<div style="font-size:11px;color:var(--text3);margin-top:6px">クリックで確認。重複でなければそのまま保存できます。</div>'+
+    '</div>';
 }
 
 /* SUGGEST */
@@ -1323,6 +1363,7 @@ function clearForm(){
   document.getElementById('f-status').value='unread';
   document.getElementById('f-lookup-input').value='';
   document.getElementById('lookup-status').style.display='none';
+  const dw=document.getElementById('duplicate-warning');if(dw)dw.style.display='none';
 }
 async function savePaper(){
   const title=document.getElementById('f-title').value.trim();if(!title){alert('タイトルは必須です');return;}
