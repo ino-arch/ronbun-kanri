@@ -187,7 +187,24 @@ textarea.note-input{background:var(--bg4);border-color:var(--border);font-size:1
   .dash-metrics{grid-template-columns:1fr 1fr}
   .dash-row{grid-template-columns:1fr}
   .notes-grid{grid-template-columns:1fr}
+  .nav{display:none}
+  .app-screen.active{padding-bottom:60px}
+  .bottom-nav{display:flex}
+  .modal{padding:16px;max-height:92vh}
+  .overlay{padding:8px;align-items:flex-end}
+  .modal{border-radius:16px 16px 0 0;max-height:94vh}
+  .btn-add-fab{display:flex}
 }
+@media(min-width:601px){
+  .bottom-nav{display:none}
+  .btn-add-fab{display:none}
+}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:150;background:var(--bg1);border-top:1px solid var(--border);height:60px;align-items:stretch;justify-content:space-around}
+.bn-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:none;cursor:pointer;font-family:inherit;color:var(--text3);transition:color 0.12s;padding:6px 2px;-webkit-tap-highlight-color:transparent}
+.bn-tab.active{color:var(--accent)}
+.bn-tab-icon{font-size:20px;line-height:1}
+.bn-tab-label{font-size:9px;letter-spacing:0.3px;font-weight:500}
+.btn-add-fab{position:fixed;bottom:70px;right:16px;z-index:160;width:52px;height:52px;border-radius:50%;background:var(--accent);color:#0a1a14;border:none;font-size:24px;cursor:pointer;font-weight:600;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(110,231,183,0.4)}
 
 /* STATS CARDS */
 .sb-stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:8px 10px;text-align:center;cursor:pointer;transition:border-color 0.12s}
@@ -223,6 +240,26 @@ textarea.note-input{background:var(--bg4);border-color:var(--border);font-size:1
 </div>
 
 <div class="app-screen" id="app-screen">
+  <!-- BOTTOM NAV (mobile) -->
+  <div class="bottom-nav" id="bottom-nav">
+    <button class="bn-tab active" id="bn-list" onclick="showPage('list',this);syncBottomNav('list')">
+      <span class="bn-tab-icon">📚</span><span class="bn-tab-label">ライブラリ</span>
+    </button>
+    <button class="bn-tab" id="bn-dash" onclick="showPage('dash',this);syncBottomNav('dash')">
+      <span class="bn-tab-icon">📊</span><span class="bn-tab-label">統計</span>
+    </button>
+    <button class="bn-tab" id="bn-matrix" onclick="showPage('matrix',this);syncBottomNav('matrix')">
+      <span class="bn-tab-icon">⊞</span><span class="bn-tab-label">比較表</span>
+    </button>
+    <button class="bn-tab" id="bn-map" onclick="showPage('map',this);syncBottomNav('map')">
+      <span class="bn-tab-icon">🗺</span><span class="bn-tab-label">マップ</span>
+    </button>
+    <button class="bn-tab" id="bn-tags" onclick="showPage('tags',this);syncBottomNav('tags')">
+      <span class="bn-tab-icon">🏷</span><span class="bn-tab-label">タグ</span>
+    </button>
+  </div>
+  <button class="btn-add-fab" onclick="openAdd()">+</button>
+
   <div class="nav">
     <div class="nav-logo"><div class="nav-logo-dot"></div>論文管理</div>
     <button class="nav-tab active" onclick="showPage('list',this)">ライブラリ</button>
@@ -820,11 +857,18 @@ function esc(s){const d=document.createElement('div');d.textContent=s||'';return
 function showPage(name,btn){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
-  document.getElementById('page-'+name).classList.add('active');btn.classList.add('active');
+  document.getElementById('page-'+name).classList.add('active');
+  if(btn)btn.classList.add('active');
+  syncBottomNav(name);
   if(name==='dash')renderDash();
   if(name==='matrix')renderMatrix();
   if(name==='tags')renderTagManager();
   if(name==='map')renderPaperMap();
+}
+function syncBottomNav(name){
+  document.querySelectorAll('.bn-tab').forEach(t=>t.classList.remove('active'));
+  const bn=document.getElementById('bn-'+name);
+  if(bn)bn.classList.add('active');
 }
 
 function getFiltered(){
