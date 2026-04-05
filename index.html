@@ -348,6 +348,7 @@ textarea.note-input{background:var(--bg4);border-color:var(--border);font-size:1
         <option value="_subjects_summary">対象者のみ</option>
         <option value="_protocol_summary">介入のみ</option>
         <option value="groups">群わけのみ</option>
+        <option value="measurements">測定項目のみ</option>
         <option value="outcomes">結果のみ</option>
         <option value="effect_size">効果量のみ</option>
         <option value="conclusion">結論のみ</option>
@@ -475,6 +476,7 @@ textarea.note-input{background:var(--bg4);border-color:var(--border);font-size:1
           <div style="grid-column:1/-1"><label style="font-size:10px">その他・詳細</label><textarea id="f-protocol" placeholder="例: 対照群は通常生活を維持&#10;ウォームアップ: 10分間の自転車エルゴメーター" style="margin-top:3px;min-height:56px"></textarea></div>
         </div>
       </div>
+      <div class="fr"><label>測定項目</label><textarea id="f-measurements" placeholder="例: 筋断面積（超音波法）&#10;最大筋力（1RM）&#10;筋電図（EMG）&#10;VO2max（増分負荷テスト）"></textarea></div>
       <div class="fr"><label>主な結果・アウトカム</label><textarea id="f-outcomes" placeholder="例: 筋断面積 +12%（p&lt;0.05）&#10;1RM +18%&#10;筋力とタンパク摂取量に有意な相関（r=0.72）"></textarea></div>
       <div class="fr"><label>効果量</label><input id="f-effect_size" type="text" placeholder="例: d=0.82（large）, η²=0.14, r=0.65"></div>
       <div class="fr"><label>統計解析方法</label><textarea id="f-statistics" placeholder="例: 2×2 反復測定ANOVA&#10;効果量: Cohen's d&#10;有意水準: p&lt;0.05"></textarea></div>
@@ -631,14 +633,14 @@ function toRow(p){
     url:p.url||'',category:p.category||'',tags:p.tags||[],status:p.status||'unread',
     memo:p.memo||'',ai_summary:p.aiSummary||'',ai_keywords:p.aiKeywords||'',created:p.created,
     subjects:p.subjects||'',protocol:p.protocol||'',outcomes:p.outcomes||'',
-    statistics:p.statistics||'',discussion:p.discussion||'',quick_note:p.quick_note||'',prior_research:p.prior_research||'',rich_memo:p.rich_memo||'',starred:p.starred||false,objective:p.objective||'',study_design:p.study_design||'',n_total:p.n_total||'',sex:p.sex||'',age:p.age||'',training_background:p.training_background||'',intervention_duration:p.intervention_duration||'',intervention_frequency:p.intervention_frequency||'',intervention_intensity:p.intervention_intensity||'',intervention_exercise:p.intervention_exercise||'',effect_size:p.effect_size||'',conclusion:p.conclusion||'',practical_application:p.practical_application||'',relevance:p.relevance||0,groups:p.groups||'',citation_count:p.citation_count||null,semantic_scholar_id:p.semantic_scholar_id||'',influence_score:p.influence_score||null};
+    statistics:p.statistics||'',discussion:p.discussion||'',quick_note:p.quick_note||'',prior_research:p.prior_research||'',rich_memo:p.rich_memo||'',starred:p.starred||false,objective:p.objective||'',study_design:p.study_design||'',n_total:p.n_total||'',sex:p.sex||'',age:p.age||'',training_background:p.training_background||'',intervention_duration:p.intervention_duration||'',intervention_frequency:p.intervention_frequency||'',intervention_intensity:p.intervention_intensity||'',intervention_exercise:p.intervention_exercise||'',effect_size:p.effect_size||'',conclusion:p.conclusion||'',practical_application:p.practical_application||'',relevance:p.relevance||0,groups:p.groups||'',citation_count:p.citation_count||null,semantic_scholar_id:p.semantic_scholar_id||'',influence_score:p.influence_score||null,measurements:p.measurements||''};
 }
 function fromRow(r){
   return {id:r.id,title:r.title,author:r.author,venue:r.venue,year:r.year,url:r.url,
     category:r.category,tags:r.tags||[],status:r.status,memo:r.memo||'',
     aiSummary:r.ai_summary||'',aiKeywords:r.ai_keywords||'',created:r.created,
     subjects:r.subjects||'',protocol:r.protocol||'',outcomes:r.outcomes||'',
-    statistics:r.statistics||'',discussion:r.discussion||'',quick_note:r.quick_note||'',prior_research:r.prior_research||'',rich_memo:r.rich_memo||'',starred:r.starred||false,objective:r.objective||'',study_design:r.study_design||'',n_total:r.n_total||'',sex:r.sex||'',age:r.age||'',training_background:r.training_background||'',intervention_duration:r.intervention_duration||'',intervention_frequency:r.intervention_frequency||'',intervention_intensity:r.intervention_intensity||'',intervention_exercise:r.intervention_exercise||'',effect_size:r.effect_size||'',conclusion:r.conclusion||'',practical_application:r.practical_application||'',relevance:r.relevance||0,groups:r.groups||'',citation_count:r.citation_count||null,semantic_scholar_id:r.semantic_scholar_id||'',influence_score:r.influence_score||null};
+    statistics:r.statistics||'',discussion:r.discussion||'',quick_note:r.quick_note||'',prior_research:r.prior_research||'',rich_memo:r.rich_memo||'',starred:r.starred||false,objective:r.objective||'',study_design:r.study_design||'',n_total:r.n_total||'',sex:r.sex||'',age:r.age||'',training_background:r.training_background||'',intervention_duration:r.intervention_duration||'',intervention_frequency:r.intervention_frequency||'',intervention_intensity:r.intervention_intensity||'',intervention_exercise:r.intervention_exercise||'',effect_size:r.effect_size||'',conclusion:r.conclusion||'',practical_application:r.practical_application||'',relevance:r.relevance||0,groups:r.groups||'',citation_count:r.citation_count||null,semantic_scholar_id:r.semantic_scholar_id||'',influence_score:r.influence_score||null,measurements:r.measurements||''};
 }
 
 let papers=[],selId=null,editId=null,activeTag=null,apiKey='';
@@ -957,6 +959,7 @@ const ALL_COLS=[
   {key:'_subjects_summary',label:'対象者',color:'var(--blue)',custom:true},
   {key:'_protocol_summary',label:'介入プロトコル',color:'var(--purple)',custom:true},
   {key:'groups',label:'群わけ・条件',color:'var(--blue)'},
+  {key:'measurements',label:'測定項目',color:'var(--blue)'},
   {key:'outcomes',label:'主な結果',color:'var(--accent)'},
   {key:'effect_size',label:'効果量',color:'var(--yellow)'},
   {key:'statistics',label:'統計解析',color:'var(--yellow)'},
@@ -1044,6 +1047,7 @@ const NOTE_BLOCKS=[
   {key:'objective',label:'目的・研究課題',color:'var(--purple)',full:true},
   {key:'_subjects_detail',label:'対象者',color:'var(--blue)',full:true,custom:true},
   {key:'_protocol_detail',label:'介入プロトコル',color:'var(--purple)',full:true,custom:true},
+  {key:'measurements',label:'測定項目',color:'var(--blue)',full:true},
   {key:'outcomes',label:'主な結果・アウトカム',color:'var(--accent)',full:true},
   {key:'_stats_detail',label:'統計・効果量',color:'var(--yellow)',full:true,custom:true},
   {key:'conclusion',label:'結論',color:'var(--accent)',full:true},
@@ -1623,12 +1627,13 @@ function openEditModal(p){
   document.getElementById('f-conclusion').value=p.conclusion||'';
   document.getElementById('f-practical_application').value=p.practical_application||'';
   document.getElementById('f-groups').value=p.groups||'';
+  document.getElementById('f-measurements').value=p.measurements||'';
   setRelevanceForm(p.relevance||0);
   document.getElementById('add-overlay').classList.add('open');
   setTimeout(renderTagAll,50);
 }
 function clearForm(){
-  ['f-title','f-author','f-venue','f-year','f-url','f-category','f-tags','f-quick_note','f-objective','f-subjects','f-protocol','f-outcomes','f-statistics','f-discussion','f-prior_research','f-n_total','f-age','f-training_background','f-intervention_duration','f-intervention_frequency','f-intervention_intensity','f-intervention_exercise','f-effect_size','f-conclusion','f-practical_application','f-groups'].forEach(id=>document.getElementById(id).value='');
+  ['f-title','f-author','f-venue','f-year','f-url','f-category','f-tags','f-quick_note','f-objective','f-subjects','f-protocol','f-outcomes','f-statistics','f-discussion','f-prior_research','f-n_total','f-age','f-training_background','f-intervention_duration','f-intervention_frequency','f-intervention_intensity','f-intervention_exercise','f-effect_size','f-conclusion','f-practical_application','f-groups','f-measurements'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('f-relevance').value='0';
   ['f-study_design','f-sex'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('f-status').value='unread';
@@ -1644,7 +1649,7 @@ async function savePaper(){
     paper=papers.find(x=>x.id===editId);
     if(paper){
       paper.title=title;paper.author=document.getElementById('f-author').value.trim();paper.venue=document.getElementById('f-venue').value.trim();paper.year=document.getElementById('f-year').value.trim();paper.url=document.getElementById('f-url').value.trim();paper.category=document.getElementById('f-category').value.trim();paper.tags=tags;paper.status=document.getElementById('f-status').value;paper.quick_note=document.getElementById('f-quick_note').value.trim();
-      paper.subjects=document.getElementById('f-subjects').value.trim();paper.protocol=document.getElementById('f-protocol').value.trim();paper.outcomes=document.getElementById('f-outcomes').value.trim();paper.statistics=document.getElementById('f-statistics').value.trim();paper.discussion=document.getElementById('f-discussion').value.trim();paper.prior_research=document.getElementById('f-prior_research').value.trim();paper.objective=document.getElementById('f-objective').value.trim();paper.study_design=document.getElementById('f-study_design').value;paper.n_total=document.getElementById('f-n_total').value.trim();paper.sex=document.getElementById('f-sex').value;paper.age=document.getElementById('f-age').value.trim();paper.training_background=document.getElementById('f-training_background').value.trim();paper.intervention_duration=document.getElementById('f-intervention_duration').value.trim();paper.intervention_frequency=document.getElementById('f-intervention_frequency').value.trim();paper.intervention_intensity=document.getElementById('f-intervention_intensity').value.trim();paper.intervention_exercise=document.getElementById('f-intervention_exercise').value.trim();paper.effect_size=document.getElementById('f-effect_size').value.trim();paper.conclusion=document.getElementById('f-conclusion').value.trim();paper.practical_application=document.getElementById('f-practical_application').value.trim();paper.relevance=parseInt(document.getElementById('f-relevance').value)||0;paper.groups=document.getElementById('f-groups').value.trim();
+      paper.subjects=document.getElementById('f-subjects').value.trim();paper.protocol=document.getElementById('f-protocol').value.trim();paper.outcomes=document.getElementById('f-outcomes').value.trim();paper.statistics=document.getElementById('f-statistics').value.trim();paper.discussion=document.getElementById('f-discussion').value.trim();paper.prior_research=document.getElementById('f-prior_research').value.trim();paper.objective=document.getElementById('f-objective').value.trim();paper.study_design=document.getElementById('f-study_design').value;paper.n_total=document.getElementById('f-n_total').value.trim();paper.sex=document.getElementById('f-sex').value;paper.age=document.getElementById('f-age').value.trim();paper.training_background=document.getElementById('f-training_background').value.trim();paper.intervention_duration=document.getElementById('f-intervention_duration').value.trim();paper.intervention_frequency=document.getElementById('f-intervention_frequency').value.trim();paper.intervention_intensity=document.getElementById('f-intervention_intensity').value.trim();paper.intervention_exercise=document.getElementById('f-intervention_exercise').value.trim();paper.effect_size=document.getElementById('f-effect_size').value.trim();paper.conclusion=document.getElementById('f-conclusion').value.trim();paper.practical_application=document.getElementById('f-practical_application').value.trim();paper.relevance=parseInt(document.getElementById('f-relevance').value)||0;paper.groups=document.getElementById('f-groups').value.trim();paper.measurements=document.getElementById('f-measurements').value.trim();
     }
   }else{
     paper={id:Date.now(),title,author:document.getElementById('f-author').value.trim(),venue:document.getElementById('f-venue').value.trim(),year:document.getElementById('f-year').value.trim(),url:document.getElementById('f-url').value.trim(),category:document.getElementById('f-category').value.trim(),tags,status:document.getElementById('f-status').value,quick_note:document.getElementById('f-quick_note').value.trim(),subjects:document.getElementById('f-subjects').value.trim(),protocol:document.getElementById('f-protocol').value.trim(),outcomes:document.getElementById('f-outcomes').value.trim(),statistics:document.getElementById('f-statistics').value.trim(),discussion:document.getElementById('f-discussion').value.trim(),prior_research:document.getElementById('f-prior_research').value.trim(),objective:document.getElementById('f-objective').value.trim(),study_design:document.getElementById('f-study_design').value,n_total:document.getElementById('f-n_total').value.trim(),sex:document.getElementById('f-sex').value,age:document.getElementById('f-age').value.trim(),training_background:document.getElementById('f-training_background').value.trim(),intervention_duration:document.getElementById('f-intervention_duration').value.trim(),intervention_frequency:document.getElementById('f-intervention_frequency').value.trim(),intervention_intensity:document.getElementById('f-intervention_intensity').value.trim(),intervention_exercise:document.getElementById('f-intervention_exercise').value.trim(),effect_size:document.getElementById('f-effect_size').value.trim(),conclusion:document.getElementById('f-conclusion').value.trim(),practical_application:document.getElementById('f-practical_application').value.trim(),relevance:parseInt(document.getElementById('f-relevance').value)||0,groups:document.getElementById('f-groups').value.trim(),memo:'',created:Date.now(),aiSummary:'',aiKeywords:''};
